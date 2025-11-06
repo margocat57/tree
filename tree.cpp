@@ -44,8 +44,12 @@ TreeErr_t TreeAddNode(TreeElem_t elem, TreeHead_t* head){
     err = TreeVerify(next_node);
     if(err) return err;
 
+    int elem_decimal = atoi(elem);
+    int next_node_data_decimal = 0;
+
     while(true){
-        if(elem <= next_node->data){
+        next_node_data_decimal = atoi(next_node->data);
+        if(elem_decimal <= next_node_data_decimal){
             if(!next_node->left){
                 next_node->left = NodeCtor(elem, next_node, NULL, NULL);
                 head->capacity++;
@@ -54,7 +58,7 @@ TreeErr_t TreeAddNode(TreeElem_t elem, TreeHead_t* head){
             }
             next_node = next_node->left;
         }
-        if(elem > next_node->data){
+        if(elem_decimal > next_node_data_decimal){
             if(!next_node->right){
                 next_node->right = NodeCtor(elem, next_node, NULL, NULL);
                 head->capacity++;
@@ -115,13 +119,13 @@ TreeErr_t PrintNode(const TreeNode_t* node, FILE* dot_file, int* rank){
     if(err) return err;
 
     if(node->left){
-        fprintf(dot_file, " node_%p -> node_%p;\n", node, node->left); 
+        fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\"];\n", node, node->left); 
         (*rank)++;
         PrintNode(node->left, dot_file, rank);
     }
-    fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#98FB98\", rank=%d, color = \"#000000\", penwidth=1.0, label=\"{{parent = %p} | {adress = %p} | {elem = %d} | {left = %p | right = %p}} \"];\n", node, *rank, node->parent ,node, node->data, node->left, node->right);
+    fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#98FB98\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{parent = %p} | {adress = %p} | {elem = %s} | {left = %p | right = %p}} \"];\n", node, *rank, node->parent ,node, node->data, node->left, node->right);
     if(node->right){
-        fprintf(dot_file, " node_%p -> node_%p;\n", node, node->right);
+        fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\"];\n", node, node->right);
         (*rank)++;
         PrintNode(node->right, dot_file, rank);
     }
