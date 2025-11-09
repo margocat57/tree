@@ -10,6 +10,6 @@ struct filenames_for_dump{
     char* svg_filename;
 };
 
-void tree_dump_func(const TreeNode_t* node, const char* debug_msg, const char *file, const char *func,  int line);
+void tree_dump_func(const TreeNode_t* node, const TreeHead_t* head, const char* debug_msg, const char *file, const char *func,  int line);
 
 #endif // LIST_DUMP_H

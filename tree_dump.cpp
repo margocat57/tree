@@ -15,15 +15,15 @@ static filenames_for_dump filename_ctor();
 
 static int check_and_dump_system_work(int sys_res);
 
-static void generate_dot_file(const TreeNode_t* node, const char* dot_filename);
+static void generate_dot_file(const TreeNode_t* node, const TreeHead_t* head, const char* dot_filename);
 
 static void generate_svg_file(const filenames_for_dump* dump);
 
 static void tree_dump_html(const TreeNode_t* node, const char* img, const char* debug_msg, const char *file, const char *func, int line);
 
-void tree_dump_func(const TreeNode_t* node, const char* debug_msg, const char *file, const char *func,  int line){
+void tree_dump_func(const TreeNode_t* node, const TreeHead_t* head, const char* debug_msg, const char *file, const char *func,  int line){
     filenames_for_dump dump = filename_ctor();
-    generate_dot_file(node, dump.dot_filename);
+    generate_dot_file(node, head, dump.dot_filename);
     generate_svg_file(&dump);
     if(dump.svg_filename){
         tree_dump_html(node, dump.svg_filename, debug_msg, file, func, line);
@@ -52,7 +52,7 @@ static void tree_dump_html(const TreeNode_t* node, const char* img, const char* 
     fprintf(html_output, "<p style=\"font-size: 17.5px; color: #bb0d12;\">%s\n" ,debug_msg);
     fprintf(html_output, "\n");
 
-    fprintf(html_output, "<img src=\"%s\" alt=\"Tree visualization\" width=\"45%%\">\n", img);
+    fprintf(html_output, "<img src=\"%s\" alt=\"Tree visualization\" width=\"18%%\">\n", img);
     fprintf(html_output, "\n");
     fclose(html_output);
 }
@@ -100,7 +100,7 @@ static filenames_for_dump filename_ctor(){
     return dump;
 }
 
-static void generate_dot_file(const TreeNode_t* node, const char* dot_filename){
+static void generate_dot_file(const TreeNode_t* node, const TreeHead_t* head, const char* dot_filename){
     if(!dot_filename){
         fprintf(stderr, "NULL dot_filename pointer - can't work\n");
         return;
@@ -114,11 +114,12 @@ static void generate_dot_file(const TreeNode_t* node, const char* dot_filename){
 
     fprintf(dot_file, "digraph G{\n");
     fprintf(dot_file, " rankdir=TB;\n");
+    fprintf(dot_file, " charset=\"utf-8\";\n");
     // fprintf(dot_file, " splines=ortho;\n");
-    fprintf(dot_file, " graph [bgcolor=\"#FFFAFA\", nodesep = 0.3, ranksep=2.0];\n");
+    fprintf(dot_file, " graph [bgcolor=\"#FFFAFA\", nodesep = 0.3, ranksep=0.8];\n");
 
     int rank = 1;
-    PrintNode(node, dot_file, &rank);
+    PrintNode(node, head, dot_file, &rank);
 
     fprintf(dot_file,"}\n");
     fclose(dot_file);
