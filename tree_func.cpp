@@ -9,6 +9,8 @@ static void PrintNodeConnect(const TreeNode_t* node, const TreeNode_t* node_chil
 
 static TreeNode_t* ReduceDepth(TreeNode_t* node, size_t* depth_change, const size_t* depth_compare);
 
+static TreeErr_t TreeVerifyRecursive(TreeNode_t* node, const TreeHead_t* head);
+
 TreeHead_t* TreeCtor(){
     TreeHead_t* head = (TreeHead_t*)calloc(1, sizeof(TreeHead_t));
     head->root = NodeCtor((char* const)"NOTHING", NULL, NULL, NULL);
@@ -190,32 +192,24 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
 }
 
 TreeErr_t TreeVerify(const TreeHead_t* head){
-    TreeErr_t err = NO_MISTAKE;
+    return TreeVerifyRecursive(head->root, head);
+}
 
-    TreeNode_t** stack = (TreeNode_t**)calloc(head->capacity, sizeof(TreeNode_t*));
-    size_t stack_head = 0;
-    stack[stack_head] = head->root;
-    stack_head++;
-
-    TreeNode_t* current = NULL;
-    while(stack_head > 0){
-        stack_head--;
-        current = stack[stack_head];
-        err = TreeNodeVerify(stack[stack_head], head);
+static TreeErr_t TreeVerifyRecursive(TreeNode_t* node, const TreeHead_t* head){
+    TreeErr_t err = TreeNodeVerify(node, head);
+    if(err) return err;
+    
+    if(node->left){
+        err = TreeVerifyRecursive(node->left, head);
         if(err) return err;
-
-        if(current->left){
-            stack[stack_head] = current->left;
-            stack_head++;
-        }
-
-        if(current->right){
-            stack[stack_head] = current->right;
-            stack_head++;
-        }
     }
-    free(stack);
-    return err;
+
+    if(node->right){
+        err = TreeVerifyRecursive(node->right, head);
+        if(err) return err;
+    }
+
+    return NO_MISTAKE;
 }
 
 TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head){
