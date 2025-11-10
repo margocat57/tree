@@ -1,16 +1,7 @@
-#include "tree.h"
+#include "akinator.h"
 #include "tree_dump.h"
 #include <stdio.h>
 
-//новая таска
-//Сделать проверку на регистр
-// обрабатывать пустое дерево
-// сделать вывод дерева в тхт
-// сделать обработку ошибок
-
-// в дампе указатель на подсвеченный элемент - рисуем другим цветом
-// проверка связи родитель -- ребенок - в верификаторе есть
-// и в дампе по хорошему тоже добавить проверку на висячий узел
 int main(){
     TreeHead_t* head = TreeCtor();
     TreeNode_t * l1 = NodeCtor("Animal", NULL, NULL, NULL);
@@ -31,13 +22,9 @@ int main(){
 
     tree_dump_func(head->root, head, "Printing tree before del", __FILE__, __func__,  __LINE__);
 
-    // tree_dump_func(head.root, &head, "After damaging with elem 57", __FILE__, __func__,  __LINE__);
-    // TreeDelNode(head.root->right, &head);
-    // tree_dump_func(head.root, &head, "Printing tree after del node", __FILE__, __func__,  __LINE__);
-    PutAkinatorFile("tree.txt", head->root, head);
+    PutAkinatorFile("akinator.txt", head->root, head);
 
     TreeDel(head);
-    // tree_dump_func(head.root, &head, "Printing tree after del full", __FILE__, __func__,  __LINE__);
 
     return 0;
 }

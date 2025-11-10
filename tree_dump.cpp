@@ -1,9 +1,10 @@
-#include "tree.h"
+#include "akinator.h"
 #include "tree_dump.h"
 #include <sys/wait.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #define CHECK_AND_RET_DUMP(bad_condition, msg)\
     if(bad_condition){ \
@@ -19,22 +20,25 @@ static void generate_dot_file(const TreeNode_t* node, const TreeHead_t* head, co
 
 static void generate_svg_file(const filenames_for_dump* dump);
 
-static void tree_dump_html(const TreeNode_t* node, const char* img, const char* debug_msg, const char *file, const char *func, int line);
+static void tree_dump_html(const TreeNode_t* node, const char* img, const char* debug_msg, const char *file, const char *func, int line, va_list args)  __attribute__((format(printf, 3, 7)));
 
-void tree_dump_func(const TreeNode_t* node, const TreeHead_t* head, const char* debug_msg, const char *file, const char *func,  int line){
+void tree_dump_func(const TreeNode_t* node, const TreeHead_t* head, const char* debug_msg, const char *file, const char *func,  int line, ...){
     filenames_for_dump dump = filename_ctor();
     generate_dot_file(node, head, dump.dot_filename);
     generate_svg_file(&dump);
     if(dump.svg_filename){
-        tree_dump_html(node, dump.svg_filename, debug_msg, file, func, line);
+        va_list args = {};
+        va_start(args, line);
+        tree_dump_html(node, dump.svg_filename, debug_msg, file, func, line, args);
         free(dump.svg_filename);
+        va_end(args);
     }
     if(dump.dot_filename){
         free(dump.dot_filename);
     }
 }
 
-static void tree_dump_html(const TreeNode_t* node, const char* img, const char* debug_msg, const char *file, const char *func, int line){
+static void tree_dump_html(const TreeNode_t* node, const char* img, const char* debug_msg, const char *file, const char *func, int line,va_list args) {
     static int launch_num = 0;
     FILE* html_output = NULL;
     if(launch_num == 0){
@@ -49,7 +53,8 @@ static void tree_dump_html(const TreeNode_t* node, const char* img, const char* 
         CHECK_AND_RET_DUMP(!html_output, "Can't open html file\n");
     }
     fprintf(html_output, "<p style=\"font-size: 20px; \">Dump was called at %s function %s line %d\n", file, func, line);
-    fprintf(html_output, "<p style=\"font-size: 17.5px; color: #bb0d12;\">%s\n" ,debug_msg);
+    fprintf(html_output, "<p style=\"font-size: 17.5px; color: #bb0d12;\">");
+    vfprintf(html_output, debug_msg, args);
     fprintf(html_output, "\n");
 
     fprintf(html_output, "<img src=\"%s\" alt=\"Tree visualization\" width=\"18%%\">\n", img);

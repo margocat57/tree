@@ -1,10 +1,14 @@
-#include "tree.h"
+#include "akinator.h"
 #include "tree_dump.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+
+const int MAX_SHORT_ANSWER_SIZE = 8;
+const int MAX_QUESTION_SIZE = 100;
+const int MAX_PERSON_NAME_SIZE = 16;
 
 static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head);
 
@@ -18,7 +22,7 @@ static TreeNode_t* TreeFindCommonNode(TreeHead_t* head, TreeNode_t* node1, TreeN
 
 TreeHead_t* TreeCtor(){
     TreeHead_t* head = (TreeHead_t*)calloc(1, sizeof(TreeHead_t));
-    head->root = NodeCtor((char*)"NOTHING", NULL, NULL, NULL);
+    head->root = NodeCtor((char* const)"NOTHING", NULL, NULL, NULL);
     head->capacity = 1;
 
     return head;
@@ -30,6 +34,11 @@ char* str_tolower(char* str){
         str[ch] = tolower(str[ch]);
     }
     return str;
+}
+
+static void clear_input_buffer(void){
+    int c = 0; 
+    while ((c = getchar()) != '\n' && c != EOF) {;}
 }
 
 
@@ -68,10 +77,10 @@ void NodeDtor(TreeNode_t* node){
 }
 
 static bool PlayAgain(){
-    char again[8] = {};
+    char again[MAX_SHORT_ANSWER_SIZE] = {};
     printf("Do you want to play again?(input yes if you want)\n");
     scanf("%7[^\n]", again);
-    getchar();
+    clear_input_buffer();
     str_tolower(again);
     if(!strncmp(again, "yes", 3)){
         return true;
@@ -85,7 +94,7 @@ TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head){
     err = TreeNodeVerify(node, head);
     if(err) return err;
 
-    char answer[8] = {};
+    char answer[MAX_SHORT_ANSWER_SIZE] = {};
 
     if(!strcmp(node->data, "NOTHING")){
         printf("Akinator is empty - need to add first question\n");
@@ -102,7 +111,7 @@ TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head){
     while(!get_corr_answer){
         printf("%s?(yes or no?)\n", node->data);
         scanf("%7[^\n]", answer);
-        getchar();
+        clear_input_buffer();
         str_tolower(answer);
 
         if(!strncmp(answer, "yes", 3)){
@@ -140,7 +149,7 @@ TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head){
 
 static void TreeQuesion(TreeNode_t* node, TreeHead_t* head){
     bool get_answer_without_no = false;
-    char feature[100] = {};
+    char feature[MAX_QUESTION_SIZE] = {};
 
     while(!get_answer_without_no){
         printf("What is dividing feature?\n");
@@ -172,9 +181,9 @@ TreeErr_t TreeAddQuestion(TreeNode_t* node, TreeHead_t* head){
     node->right = NodeCtor(node->data, node, NULL, NULL);
 
     printf("Who it was?\n");
-    char person[16] = {};
+    char person[MAX_PERSON_NAME_SIZE] = {};
     scanf("%15[^\n]", person);
-    getchar();
+    clear_input_buffer();
     node->left = NodeCtor(person, node, NULL, NULL);
 
     TreeQuesion(node, head);
@@ -191,15 +200,15 @@ TreeErr_t TreeAddFirstQuestion(TreeHead_t* head){
     TreeQuesion(head->root, head);
 
     printf("For who this feature is true?\n");
-    char person_left[16] = {};
+    char person_left[MAX_PERSON_NAME_SIZE] = {};
     scanf("%15[^\n]", person_left);
-    getchar();
+    clear_input_buffer();
     head->root->left = NodeCtor(person_left, head->root, NULL, NULL);
 
     printf("For who this feature is false?\n");
-    char person_right[16] = {};
+    char person_right[MAX_PERSON_NAME_SIZE] = {};
     scanf("%15[^\n]", person_right);
-    getchar();
+    clear_input_buffer();
     head->root->right = NodeCtor(person_right, head->root, NULL, NULL);
 
     head->capacity+=2;
@@ -403,7 +412,16 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
     if(err) return err;
 
     if(node->left){
-        fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\"];\n", node, node->left); 
+        if(node->left->parent == node){
+            fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\", dir = both];\n", node, node->left); 
+        }
+        else{
+            fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#ff0000\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{INCORRECT NODE} | {0 | 0}} \"];\n", node->left->parent, *rank);
+            fprintf(dot_file, " node_%p -> node_%p[color = \"#0000FF\"];\n", node, node->left);
+            if(node->left->parent){
+                fprintf(dot_file, " node_%p -> node_%p[color = \"#FF4F00\"];\n", node->left->parent, node->left);
+            }
+        }
         (*rank)++;
         PrintNode(node->left, head, dot_file, rank);
     }
@@ -416,7 +434,17 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
     }
 
     if(node->right){
-        fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\"];\n", node, node->right);
+        // не обрабатывается случай нулевого родителя в целом пониманию как сделать
+        if(node->right->parent == node){
+            fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\", dir=both];\n", node, node->right);
+        }
+        else{
+            fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#ff0000\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{INCORRECT NODE} | {0 | 0}} \"];\n", node->right->parent, *rank);
+            fprintf(dot_file, " node_%p -> node_%p[color = \"#0000FF\"];\n", node, node->right);
+            if(node->right->parent){
+                fprintf(dot_file, " node_%p -> node_%p[color = \"#FF4F00\"];\n", node->right->parent, node->right);
+            }
+        }
         (*rank)++;
         PrintNode(node->right, head, dot_file, rank);
     }

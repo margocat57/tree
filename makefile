@@ -1,6 +1,6 @@
 .PHONY: all clean 
 # эти цели не являются файлами выполняй их даже если соотв файлы существуют
-all: tree
+all: akinator
 # когда запускаем make без цели, то выполняем первую цель после all, то есть записи make stack make all и make эквивалентны
 
 COMP=clang++
@@ -18,7 +18,7 @@ CFLAGS = $(COMMON_CFLAGS) $(CFLAGS_DEBUG)
 	$(COMP) -c $< -o $@ $(CFLAGS) 
 # clang++ -cpp main.cpp (зависимость) -o main.o (цель) флаги
 
-tree: main.o tree.o tree_dump.o
+akinator: main.o akinator.o tree_dump.o
 	$(COMP) -o $@ $^ 
 
 # $@ имя цели
@@ -29,3 +29,4 @@ tree: main.o tree.o tree_dump.o
 clean:
 	rm -f tree *.o images/*.dot images/*.svg
 # убирать исполняемый файл
+# make -C tree_akinator akinator
