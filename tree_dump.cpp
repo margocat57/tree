@@ -1,4 +1,4 @@
-#include "akinator.h"
+#include "tree_func.h"
 #include "tree_dump.h"
 #include <sys/wait.h>
 #include <stdio.h>

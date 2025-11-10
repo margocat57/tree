@@ -1,5 +1,6 @@
 #include "akinator.h"
 #include "tree_dump.h"
+#include "tree_func.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,26 +10,39 @@
 const int MAX_SHORT_ANSWER_SIZE = 8;
 const int MAX_QUESTION_SIZE = 100;
 const int MAX_PERSON_NAME_SIZE = 16;
+// нужно для того вдруг мы захотим поменять строки с помощью которых отвечаем да или нет
+#define YES "yes"
+#define NO "no"
 
 static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head);
 
+static bool StartGameWithEmptyTree(TreeNode_t* node, TreeHead_t* head);
+
 static bool PlayAgain();
+
+static bool GetUserAnswer(TreeNode_t* node);
+
+static TreeErr_t AIWon(TreeNode_t* node, TreeHead_t* head);
+
+static TreeErr_t HandleAddQuestion(TreeNode_t* node, TreeHead_t* head);
+
+static bool GetFeatureFromUser(char* feature);
+
+static bool ContainsForbiddenWords(char* feature);
+
+static bool CheckAndSetNode(char* feature, TreeNode_t* node, TreeHead_t* head);
+
+static void PrintCommon(TreeHead_t* head, TreeNode_t *common_node);
+
+static void PrintOpposite(const char* name1, const char* name2, TreeNode_t *adr1_found, TreeNode_t *adr2_found, TreeNode_t *common_node);
+
+static void PrintOppositeCommonDefinition(TreeNode_t *node, TreeNode_t *check_node);
 
 static void TreeQuesion(TreeNode_t* node, TreeHead_t* head);
 
-static size_t TreeFindNodeDepth(TreeNode_t* node);
+static TreeNode_t* AddPerson(TreeNode_t* node, const char* str);
 
-static TreeNode_t* TreeFindCommonNode(TreeHead_t* head, TreeNode_t* node1, TreeNode_t* node2);
-
-TreeHead_t* TreeCtor(){
-    TreeHead_t* head = (TreeHead_t*)calloc(1, sizeof(TreeHead_t));
-    head->root = NodeCtor((char* const)"NOTHING", NULL, NULL, NULL);
-    head->capacity = 1;
-
-    return head;
-}
-
-char* str_tolower(char* str){
+static char* str_tolower(char* str){
     assert(str);
     for (int ch = 0; ch < strlen(str); ch++){
         str[ch] = tolower(str[ch]);
@@ -38,56 +52,70 @@ char* str_tolower(char* str){
 
 static void clear_input_buffer(void){
     int c = 0; 
-    while ((c = getchar()) != '\n' && c != EOF) {;}
+    while ((c = getchar()) != '\n') {;}
 }
 
-
-TreeNode_t* NodeCtor(TreeElem_t data, TreeNode_t* parent, TreeNode_t* left, TreeNode_t* right){
-    TreeNode_t* node = (TreeNode_t*)calloc(1, sizeof(TreeNode_t));
-    if(!node){
-        fprintf(stderr, "Can't alloc data for node");
-        return NULL;
-    }
-
-    if(data){
-        node->data = strdup(data);  
-    } 
-    else {
-        node->data = NULL;
-    }
-    node->left = left;
-    node->right = right;
-    node->parent = parent;
-    node->signature = TREE_SIGNATURE;
-
-    return node;
-}
-
-// повторяющиеся функции NodeDtor и TreeDelNode
-void NodeDtor(TreeNode_t* node){
-    if(node->data){
-        memset(node->data, 0, sizeof(TreeElem_t));
-        free(node->data);
-        node->data = NULL;
-    }
-    if(node){
-        memset(node, 0, sizeof(TreeNode_t));
-        free(node);
-    }
-}
 
 static bool PlayAgain(){
     char again[MAX_SHORT_ANSWER_SIZE] = {};
-    printf("Do you want to play again?(input yes if you want)\n");
+    printf("Do you want to play again?(input " YES " if you want)\n");
     scanf("%7[^\n]", again);
     clear_input_buffer();
     str_tolower(again);
-    if(!strncmp(again, "yes", 3)){
+    if(!strncmp(again, YES, sizeof(YES))){
         return true;
     }
     return false;
 }
 
+static bool StartGameWithEmptyTree(TreeNode_t* node, TreeHead_t* head){
+    if(!strcmp(node->data, "NOTHING")){
+        printf("Akinator is empty - need to add first question\n");
+        TreeAddFirstQuestion(head);
+        if(PlayAgain()){
+            TreeAkinate(head->root, head);
+        }
+        return true;
+    }
+    return false;
+}
+
+static bool GetUserAnswer(TreeNode_t* node){
+    char answer[MAX_SHORT_ANSWER_SIZE] = {};
+
+    while(true){
+        printf("%s? (" YES " or " NO "?)\n", node->data);
+        scanf("%7[^\n]", answer);
+        clear_input_buffer();
+        str_tolower(answer);
+
+        if(!strncmp(answer, YES, sizeof(YES))){
+            return true;
+        } 
+        else if(!strncmp(answer, NO, sizeof(NO))){
+            return false;
+        } 
+        else {
+            fprintf(stderr, "INCORRECT ANSWER - try one more time\n");
+        }
+    }
+}
+
+static TreeErr_t AIWon(TreeNode_t* node, TreeHead_t* head){
+    printf("AI WON!!! The world will be invaded by deepseek!!!\n");
+    if(PlayAgain()){
+        return TreeAkinate(head->root, head);
+    }
+    return TreeNodeVerify(node, head);
+}
+
+static TreeErr_t HandleAddQuestion(TreeNode_t* node, TreeHead_t* head){
+    TreeAddQuestion(node, head);
+    if(PlayAgain()){
+        return TreeAkinate(head->root, head);
+    }
+    return TreeNodeVerify(node, head);
+}
 
 TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head){
     TreeErr_t err = NO_MISTAKE;
@@ -96,50 +124,27 @@ TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head){
 
     char answer[MAX_SHORT_ANSWER_SIZE] = {};
 
-    if(!strcmp(node->data, "NOTHING")){
-        printf("Akinator is empty - need to add first question\n");
-        TreeAddFirstQuestion(head);
-        if(PlayAgain()){
-            return TreeAkinate(head->root, head);
-        }
+    if(StartGameWithEmptyTree(node, head)){
         err = TreeNodeVerify(node, head);
         return err;
     }
 
-    bool get_corr_answer = false;
+    bool user_answer = GetUserAnswer(node);
 
-    while(!get_corr_answer){
-        printf("%s?(yes or no?)\n", node->data);
-        scanf("%7[^\n]", answer);
-        clear_input_buffer();
-        str_tolower(answer);
-
-        if(!strncmp(answer, "yes", 3)){
-            if(node->left){
-                TreeAkinate(node->left, head);
-            }
-            else{
-                printf("AI WON!!! The world will be invaded by deepseek!!!\n");
-                if(PlayAgain()){
-                    return TreeAkinate(head->root, head);
-                }
-            }
-            get_corr_answer = true;
-        }
-        else if(!strncmp(answer, "no", 2)){
-            if(node->right){
-                TreeAkinate(node->right, head);
-            }
-            else{
-                TreeAddQuestion(node, head);
-                if(PlayAgain()){
-                    return TreeAkinate(head->root, head);
-                }
-            }
-            get_corr_answer = true;
-        }
+    if(user_answer){
+        if(node->left){
+            return TreeAkinate(node->left, head);
+        } 
         else{
-            fprintf(stderr, "INCORRECT ANSWER - try one more time\n");
+            return AIWon(node, head);
+        }
+    }
+    else{
+        if(node->right){
+            return TreeAkinate(node->right, head);
+        } 
+        else{
+            return HandleAddQuestion(node, head);
         }
     }
 
@@ -147,31 +152,55 @@ TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head){
     return err;
 }
 
-static void TreeQuesion(TreeNode_t* node, TreeHead_t* head){
-    bool get_answer_without_no = false;
-    char feature[MAX_QUESTION_SIZE] = {};
-
-    while(!get_answer_without_no){
-        printf("What is dividing feature?\n");
-        printf("Do not use words no or not in the feature\n");
-        scanf("%99[^\n]", feature);
-        getchar();
-
-        char *copy_string = strdup(feature);
-        copy_string = str_tolower(copy_string); 
-        if(!strstr(copy_string, " no") && !strstr(copy_string, " not")){
-            free(node->data);
-            node->data = strdup(feature);
-            head->capacity += 2;
-            get_answer_without_no = true;
-        }
-        else{
-            fprintf(stderr, "Your answer contains no or not - please give answer without no or note\n");
-        }
-        free(copy_string);
+static bool GetFeatureFromUser(char* feature){
+    printf("What is dividing feature?\n");
+    printf("Do not use words no or not in the feature\n");
+    
+    if(scanf("%99[^\n]", feature) != 1){
+        clear_input_buffer();
+        return false;
     }
+    clear_input_buffer();
+    return true;
 }
 
+static bool ContainsForbiddenWords(char* feature){
+    assert(feature);
+
+    char *copy_string = strdup(feature);
+    copy_string = str_tolower(copy_string); 
+
+    bool is_forbiden_words = strstr(copy_string, " no") || strstr(copy_string, " not");
+    free(copy_string);
+
+    return is_forbiden_words;
+}
+
+static bool CheckAndSetNode(char* feature, TreeNode_t* node, TreeHead_t* head){
+    if(ContainsForbiddenWords(feature)){
+        fprintf(stderr, "Your answer contains no or not - please give answer without no or note\n");
+        return false;
+    }
+
+    free(node->data);
+    node->data = strdup(feature);
+    head->capacity += 2;
+    return true;
+}
+
+static void TreeQuesion(TreeNode_t* node, TreeHead_t* head){
+    char feature[MAX_QUESTION_SIZE] = {};
+
+    while(true){
+        if(!GetFeatureFromUser(feature)){
+            printf("Can't get information about person - try again\n");
+        }
+
+        if(CheckAndSetNode(feature, node, head)){
+            break;
+        }
+    }
+}
 
 TreeErr_t TreeAddQuestion(TreeNode_t* node, TreeHead_t* head){
     TreeErr_t err = NO_MISTAKE;
@@ -179,12 +208,7 @@ TreeErr_t TreeAddQuestion(TreeNode_t* node, TreeHead_t* head){
     if(err) return err;
 
     node->right = NodeCtor(node->data, node, NULL, NULL);
-
-    printf("Who it was?\n");
-    char person[MAX_PERSON_NAME_SIZE] = {};
-    scanf("%15[^\n]", person);
-    clear_input_buffer();
-    node->left = NodeCtor(person, node, NULL, NULL);
+    node->left = AddPerson(node, "Who it was?");
 
     TreeQuesion(node, head);
 
@@ -199,43 +223,21 @@ TreeErr_t TreeAddFirstQuestion(TreeHead_t* head){
 
     TreeQuesion(head->root, head);
 
-    printf("For who this feature is true?\n");
-    char person_left[MAX_PERSON_NAME_SIZE] = {};
-    scanf("%15[^\n]", person_left);
-    clear_input_buffer();
-    head->root->left = NodeCtor(person_left, head->root, NULL, NULL);
-
-    printf("For who this feature is false?\n");
-    char person_right[MAX_PERSON_NAME_SIZE] = {};
-    scanf("%15[^\n]", person_right);
-    clear_input_buffer();
-    head->root->right = NodeCtor(person_right, head->root, NULL, NULL);
-
-    head->capacity+=2;
+    head->root->left = AddPerson(head->root, "For who this feature is true?");
+    head->root->right = AddPerson(head->root, "For who this feature is false?");
+    head->capacity += 2;
 
     err = TreeNodeVerify(head->root, head);
     return err;
 }
 
-TreeErr_t TreeFindNode(TreeNode_t* node, TreeHead_t* head, const char* name, TreeNode_t** node_ptr){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
-
-    if(!strcmp(name, node->data)){
-        *node_ptr = node;
-        err = TreeNodeVerify(node, head);
-        return err;
-    }
-    if(node->left){
-        TreeFindNode(node->left, head, name, node_ptr);
-    }
-    if(node->right){
-        TreeFindNode(node->right, head, name, node_ptr);
-    }
-
-    err = TreeNodeVerify(node, head);
-    return err;
+static TreeNode_t* AddPerson(TreeNode_t* node, const char* str){
+    assert(str);
+    printf("%s\n", str);
+    char person[MAX_PERSON_NAME_SIZE] = {};
+    scanf("%15[^\n]", person);
+    clear_input_buffer();
+    return NodeCtor(person, node, NULL, NULL);
 }
 
 TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name){
@@ -252,51 +254,29 @@ TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name){
     }
 
     printf("\n%s -", adr_found->data);
-
-    while(adr_found->parent){
-        if(adr_found == adr_found->parent->left){
-            printf(" %s,", adr_found->parent->data);
-        }
-        if(adr_found == adr_found->parent->right){
-            printf(" not %s,", adr_found->parent->data);
-        }
-        adr_found = adr_found->parent;
-    }
-
+    PrintOppositeCommonDefinition(adr_found, NULL);
 
     err = TreeNodeVerify(head->root, head);
     return err;
 }
 
-static size_t TreeFindNodeDepth(TreeNode_t* node){
-    size_t depth = 0;
-    while(node){
-        depth++;
-        node = node->parent;
+static void PrintCommon(TreeHead_t* head, TreeNode_t *common_node){
+    printf("\nCommon: ");
+    if(common_node == head->root){
+        printf(" nothing");
     }
-    return depth;
+    else{
+        PrintOppositeCommonDefinition(common_node, NULL);
+    }
 }
 
-static TreeNode_t* TreeFindCommonNode(TreeHead_t* head, TreeNode_t* node1, TreeNode_t* node2){
-    size_t depth1 = TreeFindNodeDepth(node1);
-    size_t depth2 = TreeFindNodeDepth(node2);
+static void PrintOpposite(const char* name1, const char* name2, TreeNode_t *adr1_found, TreeNode_t *adr2_found, TreeNode_t *common_node){
+    printf("\nOpposite: ");
+    printf("(for %s)", name1);
+    PrintOppositeCommonDefinition(adr1_found, common_node);
 
-    while(depth1 > depth2){
-        node1 = node1->parent;
-        depth1--;
-    }
-    while(depth2 > depth1){
-        node2 = node2->parent;
-        depth2--;
-    }
-    while(node1 != node2 && node1 && node2){
-        node1 = node1->parent;
-        node2 = node2->parent;
-    }
-    if(!node1 || !node2){
-        return head->root;
-    }
-    return node1;
+    printf("\n(for %s)", name2);
+    PrintOppositeCommonDefinition(adr2_found, common_node);
 }
 
 TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char* name2){
@@ -314,31 +294,22 @@ TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char
         printf("Can't find node by name\n");
         return CANT_FIND_NODE;
     }
-    printf("\n\nComparing %s and %s", name1, name2);
 
     TreeNode_t* common_node = TreeFindCommonNode(head, adr1_found, adr2_found);
-    TreeNode_t* node = common_node;
 
-    printf("\nCommon: ");
-    if(common_node == head->root){
-        printf(" nothing");
-    }
-    else{
-        while(node->parent){
-            if(node == node->parent->left){
-                printf(" %s,", node->parent->data);
-            }
-            if(node == node->parent->right){
-                printf(" not %s,", node->parent->data);
-            }
-            node = node->parent;
-        }
-    }
+    printf("\n\nComparing %s and %s", name1, name2);
+    PrintCommon(head, common_node);
+    PrintOpposite(name1, name2, adr1_found, adr2_found, common_node);
 
-    printf("\nOpposite: ");
-    printf("(for %s)", name1);
-    node = adr1_found;
-    while(node != common_node){
+    err = TreeNodeVerify(head->root, head);
+    return err;
+}
+
+// да, тернарный оператор тот еще костыль но я честно не понимаю как здесь 
+// не плодить две функции без компаратора
+static void PrintOppositeCommonDefinition(TreeNode_t *node, TreeNode_t *check_node){
+    assert(node);
+    while((check_node == NULL ? node->parent != NULL : node != check_node)){
         if(node == node->parent->left){
             printf(" %s,", node->parent->data);
         }
@@ -347,147 +318,6 @@ TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char
         }
         node = node->parent;
     }
-
-    printf("\n(for %s)", name2);
-    node = adr2_found;
-    while(node != common_node){
-        if(node == node->parent->left){
-            printf(" %s,", node->parent->data);
-        }
-        if(node == node->parent->right){
-            printf(" not %s,", node->parent->data);
-        }
-        node = node->parent;
-    }
-
-    err = TreeNodeVerify(head->root, head);
-    return err;
-}
-
-TreeErr_t TreeDelNodeRecur(TreeNode_t* node, TreeHead_t* head){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(node, head);
-    if(err) return err;
-
-    TreeNode_t* parent = node->parent;
-
-    if(node->left){
-        TreeDelNodeRecur(node->left, head);
-    }
-    if(node->right){
-        TreeDelNodeRecur(node->right, head);
-    }
-
-    if (parent != NULL) {
-        if(parent->left == node){
-            parent->left = NULL;
-        } 
-        if(parent->right == node){
-            parent->right = NULL;
-        }
-    }
-
-    NodeDtor(node);
-    node = NULL;
-    head->capacity--;
-
-    return err;
-}
-
-TreeErr_t TreeDel(TreeHead_t* head){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
-
-    TreeDelNodeRecur(head->root, head);
-    memset(head, 0, sizeof(TreeHead_t));
-    free(head);
-
-    return err;
-}
-
-TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_file, int* rank){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
-
-    if(node->left){
-        if(node->left->parent == node){
-            fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\", dir = both];\n", node, node->left); 
-        }
-        else{
-            fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#ff0000\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{INCORRECT NODE} | {0 | 0}} \"];\n", node->left->parent, *rank);
-            fprintf(dot_file, " node_%p -> node_%p[color = \"#0000FF\"];\n", node, node->left);
-            if(node->left->parent){
-                fprintf(dot_file, " node_%p -> node_%p[color = \"#FF4F00\"];\n", node->left->parent, node->left);
-            }
-        }
-        (*rank)++;
-        PrintNode(node->left, head, dot_file, rank);
-    }
-
-    if(node->left && node->right){
-        fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#98FB98\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{%s?} | {YES | NO}} \"];\n", node, *rank, node->data);
-    }
-    else{
-        fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#98FB98\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{%s} | {0 | 0}} \"];\n", node, *rank, node->data);
-    }
-
-    if(node->right){
-        // не обрабатывается случай нулевого родителя в целом пониманию как сделать
-        if(node->right->parent == node){
-            fprintf(dot_file, " node_%p -> node_%p[color = \"#964B00\", dir=both];\n", node, node->right);
-        }
-        else{
-            fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#ff0000\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{INCORRECT NODE} | {0 | 0}} \"];\n", node->right->parent, *rank);
-            fprintf(dot_file, " node_%p -> node_%p[color = \"#0000FF\"];\n", node, node->right);
-            if(node->right->parent){
-                fprintf(dot_file, " node_%p -> node_%p[color = \"#FF4F00\"];\n", node->right->parent, node->right);
-            }
-        }
-        (*rank)++;
-        PrintNode(node->right, head, dot_file, rank);
-    }
-    (*rank)--;
-
-    err = TreeNodeVerify(node, head);
-    return err;
-}
-
-TreeErr_t TreeVerify(const TreeHead_t* head){
-    return TreeNodeVerify(head->root, head);
-}
-
-TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head){
-    if(!node || !head){
-        fprintf(stderr, "NULL node ptr\n");
-        return NULL_NODE_PTR;
-    }
-    if(node->signature != TREE_SIGNATURE){
-        fprintf(stderr, "Incorr signature\n");
-        return INCORRECT_SIGN;
-    }
-
-    // вообще ниже по хорошему нужен дамп дерева
-    if((node != head->root && (node->parent->left != node && node->parent->right != node)) 
-        || (node == head->root && node->parent != NULL)){
-        fprintf(stderr, "Incorr connection between parent(%p) and child(%p) nodes\n", node->parent, node);
-        return INCORR_CONNECT_PARENT_CHILD;
-    }
-    if(node->left && node != node->left->parent){
-        fprintf(stderr, "Incorr connection between parent(%p) and LEFT child(%p) nodes\n", node, node->left);
-        return INCORR_LEFT_CONNECT;
-    }
-    if(node->right && node != node->right->parent){
-        fprintf(stderr, "Incorr connection between parent(%p) and RIGHT child(%p) nodes\n", node, node->right);
-        return INCORR_RIGHT_CONNECT;
-    }
-
-    if(node->left && node->right){
-        return TreeNodeVerify(node->left, head) && TreeNodeVerify(node->right, head);
-    }
-
-    return NO_MISTAKE;
 }
 
 static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head){
@@ -515,7 +345,7 @@ static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeH
         fprintf(file, " nill");
     }
 
-    fprintf(file, " )");
+    fprintf(file, " ) ");
     err = TreeNodeVerify(node, head);
     return err;
 }

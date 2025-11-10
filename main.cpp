@@ -1,4 +1,5 @@
 #include "akinator.h"
+#include "tree_func.h"
 #include "tree_dump.h"
 #include <stdio.h>
 

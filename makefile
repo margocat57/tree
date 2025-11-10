@@ -18,7 +18,7 @@ CFLAGS = $(COMMON_CFLAGS) $(CFLAGS_DEBUG)
 	$(COMP) -c $< -o $@ $(CFLAGS) 
 # clang++ -cpp main.cpp (зависимость) -o main.o (цель) флаги
 
-akinator: main.o akinator.o tree_dump.o
+akinator: main.o akinator.o tree_dump.o tree_func.o
 	$(COMP) -o $@ $^ 
 
 # $@ имя цели
@@ -27,6 +27,6 @@ akinator: main.o akinator.o tree_dump.o
 # clang++ -o stack main.o hash.o log.o my_assert.o stack_func.o
 
 clean:
-	rm -f tree *.o images/*.dot images/*.svg
+	rm -f akinator *.o images/*.dot images/*.svg
 # убирать исполняемый файл
 # make -C tree_akinator akinator
