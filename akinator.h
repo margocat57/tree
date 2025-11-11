@@ -4,9 +4,7 @@
 
 TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name);
 
-TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head);
-
-TreeErr_t TreeAddQuestion(TreeNode_t* node, TreeHead_t* head);
+TreeErr_t TreeAkinate(TreeHead_t* head);
 
 TreeErr_t TreeAddFirstQuestion(TreeHead_t* head);
 

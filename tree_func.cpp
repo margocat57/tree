@@ -3,13 +3,15 @@
 #include <assert.h>
 #include "tree_func.h"
 
-static size_t TreeFindNodeDepth(TreeNode_t* node);
+#define MAX_DEF_BUFFER 2048
+#define MAX_SPEAK_BUFFER 2060
+
+static size_t TreeFindNodeDepth(TreeNode_t* node, TreeNode_t* node_comp);
 
 static void PrintNodeConnect(const TreeNode_t* node, const TreeNode_t* node_child, FILE* dot_file, int* rank);
 
 static TreeNode_t* ReduceDepth(TreeNode_t* node, size_t* depth_change, const size_t* depth_compare);
 
-static TreeErr_t TreeVerifyRecursive(TreeNode_t* node, const TreeHead_t* head);
 
 TreeHead_t* TreeCtor(){
     TreeHead_t* head = (TreeHead_t*)calloc(1, sizeof(TreeHead_t));
@@ -74,9 +76,9 @@ TreeErr_t TreeFindNode(TreeNode_t* node, TreeHead_t* head, const char* name, Tre
     return err;
 }
 
-static size_t TreeFindNodeDepth(TreeNode_t* node){
+static size_t TreeFindNodeDepth(TreeNode_t* node, TreeNode_t* node_comp){
     size_t depth = 0;
-    while(node){
+    while(node != node_comp->parent){
         depth++;
         node = node->parent;
     }
@@ -92,8 +94,8 @@ static TreeNode_t* ReduceDepth(TreeNode_t* node, size_t* depth_change, const siz
 }
 
 TreeNode_t* TreeFindCommonNode(TreeHead_t* head, TreeNode_t* node1, TreeNode_t* node2){
-    size_t depth1 = TreeFindNodeDepth(node1);
-    size_t depth2 = TreeFindNodeDepth(node2);
+    size_t depth1 = TreeFindNodeDepth(node1, head->root);
+    size_t depth2 = TreeFindNodeDepth(node2, head->root);
 
     node1 = ReduceDepth(node1, &depth1, &depth2);
     node2 = ReduceDepth(node2, &depth2, &depth1);
@@ -106,6 +108,31 @@ TreeNode_t* TreeFindCommonNode(TreeHead_t* head, TreeNode_t* node1, TreeNode_t* 
         return head->root;
     }
     return node1;
+}
+
+stack_t_t* TreeFindPathToNode(TreeNode_t* node, TreeNode_t* node_dst){
+    if(!node){
+        return NULL;
+    }
+    size_t depth = TreeFindNodeDepth(node, node_dst);
+    stack_t_t* path = stack_ctor(depth, __FILE__, __func__, __LINE__);
+    if(!path){
+        fprintf(stderr, "Can't alloc memory for buffer");
+        return NULL;
+    }
+    int left = 1;
+    int right = 0;
+
+    while(node != node_dst){
+        if(node == node->parent->left){
+            stack_push(path, &left);
+        }
+        if(node == node->parent->right){
+            stack_push(path, &right);
+        }
+        node = node->parent;
+    }
+    return path;
 }
 
 TreeErr_t TreeDelNodeRecur(TreeNode_t* node, TreeHead_t* head){
@@ -192,24 +219,7 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
 }
 
 TreeErr_t TreeVerify(const TreeHead_t* head){
-    return TreeVerifyRecursive(head->root, head);
-}
-
-static TreeErr_t TreeVerifyRecursive(TreeNode_t* node, const TreeHead_t* head){
-    TreeErr_t err = TreeNodeVerify(node, head);
-    if(err) return err;
-    
-    if(node->left){
-        err = TreeVerifyRecursive(node->left, head);
-        if(err) return err;
-    }
-
-    if(node->right){
-        err = TreeVerifyRecursive(node->right, head);
-        if(err) return err;
-    }
-
-    return NO_MISTAKE;
+    return TreeNodeVerify(head->root, head);
 }
 
 TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head){
@@ -237,5 +247,22 @@ TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head){
         return INCORR_RIGHT_CONNECT;
     }
 
+    if(node->left && node->right){
+        return TreeNodeVerify(node->left, head) && TreeNodeVerify(node->right, head);
+    }
+
     return NO_MISTAKE;
+}
+
+void SayAndPrintSaid(const char* format, ...){
+    va_list args = {};
+    va_start(args, format);
+
+    char definition_buffer[MAX_DEF_BUFFER] = {};
+    vsnprintf(definition_buffer, MAX_DEF_BUFFER, format, args);
+    printf("%s", definition_buffer);
+
+    char speak_buffer[MAX_SPEAK_BUFFER] = {};
+    snprintf(speak_buffer, MAX_SPEAK_BUFFER, "say '%s'", definition_buffer);
+    system(speak_buffer);
 }

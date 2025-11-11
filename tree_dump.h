@@ -1,7 +1,6 @@
 #ifndef LIST_DUMP_H
 #define LIST_DUMP_H
 #include <string.h>
-#include <string.h>
 #include "akinator.h"
 
 const char* const LOG_FILE = "log.htm";

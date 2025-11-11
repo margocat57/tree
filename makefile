@@ -8,17 +8,37 @@ COMP=clang++
 #make DEBUG=1
 
 CFLAGS_DEBUG = -D _DEBUG 
-COMMON_CFLAGS = -ggdb3 -std=c++20 -O0 -Wall -Wextra -Weffc++ -Wc++14-compat -Wmissing-declarations -Wcast-align -Wcast-qual -Wchar-subscripts -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat=2 -Winline -Wnon-virtual-dtor -Woverloaded-virtual -Wpacked -Wpointer-arith -Winit-self -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-overflow=2 -Wsuggest-override -Wswitch-default -Wswitch-enum -Wundef -Wunreachable-code -Wunused -Wvariadic-macros -Wno-missing-field-initializers -Wno-narrowing -Wno-old-style-cast -Wno-varargs -Wstack-protector -fcheck-new -fsized-deallocation -fstack-protector -fstrict-overflow -fno-omit-frame-pointer -Wlarger-than=8192 -fPIE -Werror=vla -Wno-c++11-extensions
+COMMON_CFLAGS = -ggdb3 -std=c++20 -O0 -Wall -Wextra -Weffc++ -Wc++14-compat -Wmissing-declarations -Wcast-align -Wcast-qual -Wchar-subscripts -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat=2 -Winline -Wnon-virtual-dtor -Woverloaded-virtual -Wpacked -Wpointer-arith -Winit-self -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-overflow=2 -Wsuggest-override -Wswitch-default -Wswitch-enum -Wundef -Wunreachable-code -Wunused -Wvariadic-macros -Wno-missing-field-initializers -Wno-narrowing -Wno-old-style-cast -Wno-varargs -Wstack-protector -fcheck-new -fsized-deallocation -fstack-protector -fstrict-overflow -fno-omit-frame-pointer -Wlarger-than=8192 -fPIE -Werror=vla -Wno-c++11-extensions 
 # CFLAGS = -D _DEBUG
 
 
 CFLAGS = $(COMMON_CFLAGS) $(CFLAGS_DEBUG)
 
-%.o: %.cpp
-	$(COMP) -c $< -o $@ $(CFLAGS) 
-# clang++ -cpp main.cpp (зависимость) -o main.o (цель) флаги
+stack_for_akinator/hash.o: stack_for_akinator/hash.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
 
-akinator: main.o akinator.o tree_dump.o tree_func.o
+stack_for_akinator/log.o: stack_for_akinator/log.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+stack_for_akinator/my_assert.o: stack_for_akinator/my_assert.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+stack_for_akinator/stack_func.o: stack_for_akinator/stack_func.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+main.o: main.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+akinator.o: akinator.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+tree_dump.o: tree_dump.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+tree_func.o: tree_func.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+akinator: main.o akinator.o tree_dump.o tree_func.o stack_for_akinator/hash.o stack_for_akinator/log.o stack_for_akinator/my_assert.o stack_for_akinator/stack_func.o
 	$(COMP) -o $@ $^ 
 
 # $@ имя цели
@@ -27,6 +47,6 @@ akinator: main.o akinator.o tree_dump.o tree_func.o
 # clang++ -o stack main.o hash.o log.o my_assert.o stack_func.o
 
 clean:
-	rm -f akinator *.o images/*.dot images/*.svg
+	rm -f akinator *.o images/*.dot images/*.svg stack_for_akinator/*.o
 # убирать исполняемый файл
 # make -C tree_akinator akinator

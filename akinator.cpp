@@ -7,40 +7,22 @@
 #include <assert.h>
 #include <ctype.h>
 
-const int MAX_SHORT_ANSWER_SIZE = 8;
-const int MAX_QUESTION_SIZE = 100;
-const int MAX_PERSON_NAME_SIZE = 16;
+#define MAX_SHORT_ANSWER_SIZE 8
+#define MAX_QUESTION_SIZE 100
+#define MAX_PERSON_NAME_SIZE 16
+#define LEFT 1
+#define RIGHT 0
 // нужно для того вдруг мы захотим поменять строки с помощью которых отвечаем да или нет
 #define YES "yes"
 #define NO "no"
 
 static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head);
 
-static bool StartGameWithEmptyTree(TreeNode_t* node, TreeHead_t* head);
+static TreeErr_t TreeAddObjAndQuestion(TreeNode_t* node, TreeHead_t* head);
 
-static bool PlayAgain();
-
-static bool GetUserAnswer(TreeNode_t* node);
-
-static TreeErr_t AIWon(TreeNode_t* node, TreeHead_t* head);
-
-static TreeErr_t HandleAddQuestion(TreeNode_t* node, TreeHead_t* head);
-
-static bool GetFeatureFromUser(char* feature);
-
-static bool ContainsForbiddenWords(char* feature);
-
-static bool CheckAndSetNode(char* feature, TreeNode_t* node, TreeHead_t* head);
-
-static void PrintCommon(TreeHead_t* head, TreeNode_t *common_node);
-
-static void PrintOpposite(const char* name1, const char* name2, TreeNode_t *adr1_found, TreeNode_t *adr2_found, TreeNode_t *common_node);
-
-static void PrintOppositeCommonDefinition(TreeNode_t *node, TreeNode_t *check_node);
-
-static void TreeQuesion(TreeNode_t* node, TreeHead_t* head);
-
-static TreeNode_t* AddPerson(TreeNode_t* node, const char* str);
+//--------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------
+// Small functions that used in many other functions
 
 static char* str_tolower(char* str){
     assert(str);
@@ -55,6 +37,109 @@ static void clear_input_buffer(void){
     while ((c = getchar()) != '\n') {;}
 }
 
+//-------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------
+// TreeAkinate - main akinator function
+
+enum TYPEANSWERS{
+    NO_ANS  = 0,
+    YES_ANS = 1,
+    INCORRECT = 2,
+};
+
+static bool StartGame(TreeHead_t* head);
+
+static TYPEANSWERS GetCheckAnswer(char* answer, TreeNode_t* node);
+
+static bool CheckAndProcessYes(TreeNode_t** node, TreeHead_t* head);
+
+static bool CheckAndProcessNo(TreeNode_t** node, TreeHead_t* head);
+
+static bool PlayAgain();
+
+TreeErr_t TreeAkinate(TreeHead_t* head){
+    TreeErr_t err = NO_MISTAKE;
+    err = TreeNodeVerify(head->root, head);
+    if(err) return err;
+
+    if(!StartGame(head)){
+        return TreeNodeVerify(head->root, head);
+    }
+
+    bool get_corr_answer = false;
+    TYPEANSWERS typeans = INCORRECT;
+
+    char answer[MAX_SHORT_ANSWER_SIZE] = {};
+    TreeNode_t* node = head->root;
+
+    while(!get_corr_answer){
+        typeans = GetCheckAnswer(answer, node);
+        if(typeans == YES_ANS){
+            get_corr_answer = CheckAndProcessYes(&node, head);
+        }
+        else if(typeans == NO_ANS){
+            get_corr_answer = CheckAndProcessNo(&node, head);
+        }
+    }
+
+    return TreeNodeVerify(node, head);
+}
+
+static bool StartGame(TreeHead_t* head){
+    if(!strcmp(head->root->data, "NOTHING")){
+        TreeAddFirstQuestion(head);
+        if(PlayAgain()){
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+static TYPEANSWERS GetCheckAnswer(char* answer, TreeNode_t* node){
+    printf("%s(yes or no?)\n", node->data);
+    scanf("%7[^\n]", answer);
+    clear_input_buffer();
+    answer =  str_tolower(answer);
+    if(!strncmp(answer, YES, sizeof(YES))){
+        return YES_ANS;
+    }
+    if(!strncmp(answer, NO, sizeof(NO))){
+        return NO_ANS;
+    }
+    fprintf(stderr, "INCORRECT ANSWER - try one more time\n");
+    return INCORRECT;
+}
+
+static bool CheckAndProcessYes(TreeNode_t** node, TreeHead_t* head){
+    assert(head && node && *node);
+    if((*node)->left){
+        *node = (*node)->left;
+    }
+    else{
+        printf("AI WON!!! The world will be invaded by deepseek!!!\n");
+        if(!PlayAgain()){
+            return true;
+        }
+        *node = head->root;
+    }
+    return false;
+}
+
+static bool CheckAndProcessNo(TreeNode_t** node, TreeHead_t* head){
+    assert(head && node && *node);
+    if((*node)->right){
+        *node = (*node)->right;
+    }
+    else{
+        TreeAddObjAndQuestion(*node, head);
+        if(!PlayAgain()){
+            return true;
+        }
+        (*node) = head->root;
+    }
+    return false;
+}
 
 static bool PlayAgain(){
     char again[MAX_SHORT_ANSWER_SIZE] = {};
@@ -68,141 +153,16 @@ static bool PlayAgain(){
     return false;
 }
 
-static bool StartGameWithEmptyTree(TreeNode_t* node, TreeHead_t* head){
-    if(!strcmp(node->data, "NOTHING")){
-        printf("Akinator is empty - need to add first question\n");
-        TreeAddFirstQuestion(head);
-        if(PlayAgain()){
-            TreeAkinate(head->root, head);
-        }
-        return true;
-    }
-    return false;
-}
+//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+// Function for adding new nodes and questions for them if not first question
+// For adding first node in empty tree - see below
 
-static bool GetUserAnswer(TreeNode_t* node){
-    char answer[MAX_SHORT_ANSWER_SIZE] = {};
+static TreeNode_t* AddPerson(TreeNode_t* node, const char* str);
 
-    while(true){
-        printf("%s? (" YES " or " NO "?)\n", node->data);
-        scanf("%7[^\n]", answer);
-        clear_input_buffer();
-        str_tolower(answer);
+static void TreeQuesion(TreeNode_t* node, TreeHead_t* head);
 
-        if(!strncmp(answer, YES, sizeof(YES))){
-            return true;
-        } 
-        else if(!strncmp(answer, NO, sizeof(NO))){
-            return false;
-        } 
-        else {
-            fprintf(stderr, "INCORRECT ANSWER - try one more time\n");
-        }
-    }
-}
-
-static TreeErr_t AIWon(TreeNode_t* node, TreeHead_t* head){
-    printf("AI WON!!! The world will be invaded by deepseek!!!\n");
-    if(PlayAgain()){
-        return TreeAkinate(head->root, head);
-    }
-    return TreeNodeVerify(node, head);
-}
-
-static TreeErr_t HandleAddQuestion(TreeNode_t* node, TreeHead_t* head){
-    TreeAddQuestion(node, head);
-    if(PlayAgain()){
-        return TreeAkinate(head->root, head);
-    }
-    return TreeNodeVerify(node, head);
-}
-
-TreeErr_t TreeAkinate(TreeNode_t* node, TreeHead_t* head){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(node, head);
-    if(err) return err;
-
-    char answer[MAX_SHORT_ANSWER_SIZE] = {};
-
-    if(StartGameWithEmptyTree(node, head)){
-        err = TreeNodeVerify(node, head);
-        return err;
-    }
-
-    bool user_answer = GetUserAnswer(node);
-
-    if(user_answer){
-        if(node->left){
-            return TreeAkinate(node->left, head);
-        } 
-        else{
-            return AIWon(node, head);
-        }
-    }
-    else{
-        if(node->right){
-            return TreeAkinate(node->right, head);
-        } 
-        else{
-            return HandleAddQuestion(node, head);
-        }
-    }
-
-    err = TreeNodeVerify(node, head);
-    return err;
-}
-
-static bool GetFeatureFromUser(char* feature){
-    printf("What is dividing feature?\n");
-    printf("Do not use words no or not in the feature\n");
-    
-    if(scanf("%99[^\n]", feature) != 1){
-        clear_input_buffer();
-        return false;
-    }
-    clear_input_buffer();
-    return true;
-}
-
-static bool ContainsForbiddenWords(char* feature){
-    assert(feature);
-
-    char *copy_string = strdup(feature);
-    copy_string = str_tolower(copy_string); 
-
-    bool is_forbiden_words = strstr(copy_string, " no") || strstr(copy_string, " not");
-    free(copy_string);
-
-    return is_forbiden_words;
-}
-
-static bool CheckAndSetNode(char* feature, TreeNode_t* node, TreeHead_t* head){
-    if(ContainsForbiddenWords(feature)){
-        fprintf(stderr, "Your answer contains no or not - please give answer without no or note\n");
-        return false;
-    }
-
-    free(node->data);
-    node->data = strdup(feature);
-    head->capacity += 2;
-    return true;
-}
-
-static void TreeQuesion(TreeNode_t* node, TreeHead_t* head){
-    char feature[MAX_QUESTION_SIZE] = {};
-
-    while(true){
-        if(!GetFeatureFromUser(feature)){
-            printf("Can't get information about person - try again\n");
-        }
-
-        if(CheckAndSetNode(feature, node, head)){
-            break;
-        }
-    }
-}
-
-TreeErr_t TreeAddQuestion(TreeNode_t* node, TreeHead_t* head){
+static TreeErr_t TreeAddObjAndQuestion(TreeNode_t* node, TreeHead_t* head){
     TreeErr_t err = NO_MISTAKE;
     err = TreeNodeVerify(node, head);
     if(err) return err;
@@ -211,24 +171,9 @@ TreeErr_t TreeAddQuestion(TreeNode_t* node, TreeHead_t* head){
     node->left = AddPerson(node, "Who it was?");
 
     TreeQuesion(node, head);
-
-    err = TreeNodeVerify(node, head);
-    return err;
-}
-
-TreeErr_t TreeAddFirstQuestion(TreeHead_t* head){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
-
-    TreeQuesion(head->root, head);
-
-    head->root->left = AddPerson(head->root, "For who this feature is true?");
-    head->root->right = AddPerson(head->root, "For who this feature is false?");
     head->capacity += 2;
 
-    err = TreeNodeVerify(head->root, head);
-    return err;
+    return TreeNodeVerify(node, head);
 }
 
 static TreeNode_t* AddPerson(TreeNode_t* node, const char* str){
@@ -239,6 +184,75 @@ static TreeNode_t* AddPerson(TreeNode_t* node, const char* str){
     clear_input_buffer();
     return NodeCtor(person, node, NULL, NULL);
 }
+
+//-------------------------------------------------------------------------------
+// For asking dividing questions
+
+static void GetDividingQuestion(char* question);
+
+static bool IsForbiddenSymbolsInStr(char* question);
+
+static void TreeQuesion(TreeNode_t* node, TreeHead_t* head){
+    bool get_answer_without_no = false;
+    char question[MAX_QUESTION_SIZE] = {};
+
+    while(!get_answer_without_no){
+        GetDividingQuestion(question);
+
+        if(IsForbiddenSymbolsInStr(question)){
+            fprintf(stderr, "Your answer contains no or not - please give answer without no or note\n");
+        }
+        else{
+            free(node->data);
+            node->data = strdup(question);
+            get_answer_without_no = true;
+        }
+    }
+}
+
+static void GetDividingQuestion(char* question){
+    assert(question);
+    printf("What is dividing question?\n");
+    printf("Do not use words no or not in the question\n");
+    scanf("%99[^\n]", question);
+    clear_input_buffer();
+}
+
+static bool IsForbiddenSymbolsInStr(char* question){
+    assert(question);
+    char *copy_string = strdup(question);
+    copy_string = str_tolower(copy_string);
+
+    bool is_forbidden_symbols =  strstr(copy_string, " no") || strstr(copy_string, " not");
+    free(copy_string);
+
+    return is_forbidden_symbols;
+}
+
+//------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+// For asking first question
+
+TreeErr_t TreeAddFirstQuestion(TreeHead_t* head){
+    TreeErr_t err = NO_MISTAKE;
+    err = TreeNodeVerify(head->root, head);
+    if(err) return err;
+
+    printf("Akinator is empty - need to add first question\n");
+    TreeQuesion(head->root, head);
+
+    head->root->left = AddPerson(head->root, "For who this feature is true?");
+    head->root->right = AddPerson(head->root, "For who this feature is false?");
+    head->capacity += 2;
+
+    return TreeNodeVerify(head->root, head);
+}
+
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+// Telling definition of object
+
+static void OutputCommands(stack_t_t* path, TreeNode_t* adr_found, TreeNode_t* st_node, TreeHead_t* head);
 
 TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name){
     TreeErr_t err = NO_MISTAKE;
@@ -253,31 +267,40 @@ TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name){
         return CANT_FIND_NODE;
     }
 
-    printf("\n%s -", adr_found->data);
-    PrintOppositeCommonDefinition(adr_found, NULL);
+    stack_t_t* path = TreeFindPathToNode(adr_found, head->root);
+    if(!path){
+        return CANT_FIND_PATH;
+    }
+
+    SayAndPrintSaid("\n%s -", adr_found->data);
+
+    OutputCommands(path, adr_found, head->root, head);
+
+    stack_free(path);
 
     err = TreeNodeVerify(head->root, head);
     return err;
 }
 
-static void PrintCommon(TreeHead_t* head, TreeNode_t *common_node){
-    printf("\nCommon: ");
-    if(common_node == head->root){
-        printf(" nothing");
-    }
-    else{
-        PrintOppositeCommonDefinition(common_node, NULL);
+static void OutputCommands(stack_t_t* path, TreeNode_t* adr_found, TreeNode_t* st_node, TreeHead_t* head){
+    TreeNode_t* node = st_node;
+    int elem = 0;
+    while(node != adr_found){
+        stack_pop(path, &elem);
+        if(elem == LEFT){
+            SayAndPrintSaid(" %s", node->data);
+            node = node ->left;
+        }
+        if(elem == RIGHT){
+            SayAndPrintSaid(" not %s", node->data);
+            node = node ->right;
+        }
     }
 }
 
-static void PrintOpposite(const char* name1, const char* name2, TreeNode_t *adr1_found, TreeNode_t *adr2_found, TreeNode_t *common_node){
-    printf("\nOpposite: ");
-    printf("(for %s)", name1);
-    PrintOppositeCommonDefinition(adr1_found, common_node);
-
-    printf("\n(for %s)", name2);
-    PrintOppositeCommonDefinition(adr2_found, common_node);
-}
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+// Пока что тут копипаст - подумаю как пофиксить
 
 TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char* name2){
     TreeErr_t err = NO_MISTAKE;
@@ -297,27 +320,67 @@ TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char
 
     TreeNode_t* common_node = TreeFindCommonNode(head, adr1_found, adr2_found);
 
-    printf("\n\nComparing %s and %s", name1, name2);
-    PrintCommon(head, common_node);
-    PrintOpposite(name1, name2, adr1_found, adr2_found, common_node);
+    stack_t_t* path = TreeFindPathToNode(common_node, head->root);
+    if(!path){
+        return CANT_FIND_PATH;
+    }
+
+    SayAndPrintSaid("\n\nComparing %s and %s\n", name1, name2);
+
+    SayAndPrintSaid("\nCommon: ");
+
+    OutputCommands(path, common_node, head->root, head);
+
+    stack_free(path);
+
+    stack_t_t* path1 = TreeFindPathToNode(adr1_found, common_node);
+    if(!path1){
+        return CANT_FIND_PATH;
+    }
+
+    SayAndPrintSaid("\nOpposite for %s: ", adr1_found->data);
+
+    OutputCommands(path1, adr1_found, common_node, head);
+
+    stack_free(path1);
+
+    stack_t_t* path2 = TreeFindPathToNode(adr2_found, common_node);
+    if(!path2){
+        return CANT_FIND_PATH;
+    }
+
+    SayAndPrintSaid("\nOpposite for %s: ", adr2_found->data);
+
+    OutputCommands(path2, adr2_found, common_node, head);
+
+    stack_free(path2);
 
     err = TreeNodeVerify(head->root, head);
     return err;
 }
 
-// да, тернарный оператор тот еще костыль но я честно не понимаю как здесь 
-// не плодить две функции без компаратора
-static void PrintOppositeCommonDefinition(TreeNode_t *node, TreeNode_t *check_node){
-    assert(node);
-    while((check_node == NULL ? node->parent != NULL : node != check_node)){
-        if(node == node->parent->left){
-            printf(" %s,", node->parent->data);
-        }
-        if(node == node->parent->right){
-            printf(" not %s,", node->parent->data);
-        }
-        node = node->parent;
+//------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
+// For save akinator to disk
+
+static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head);
+
+TreeErr_t PutAkinatorFile(const char* file_name, TreeNode_t *node, const TreeHead_t* head){
+    TreeErr_t err = NO_MISTAKE;
+    err = TreeNodeVerify(head->root, head);
+    if(err) return err;
+
+    FILE* fp = fopen(file_name, "w");
+    if(!fp){
+        fprintf(stderr, "Can't open output file\n");
+        return CANT_OPEN_OUT_FILE;
     }
+
+    PutAkinatorTreeToFile(fp, node, head);
+    fclose(fp);
+
+    err = TreeNodeVerify(node, head);
+    return err;
 }
 
 static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head){
@@ -346,24 +409,6 @@ static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeH
     }
 
     fprintf(file, " ) ");
-    err = TreeNodeVerify(node, head);
-    return err;
-}
-
-TreeErr_t PutAkinatorFile(const char* file_name, TreeNode_t *node, const TreeHead_t* head){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
-
-    FILE* fp = fopen(file_name, "w");
-    if(!fp){
-        fprintf(stderr, "Can't open output file\n");
-        return CANT_OPEN_OUT_FILE;
-    }
-
-    PutAkinatorTreeToFile(fp, node, head);
-    fclose(fp);
-
     err = TreeNodeVerify(node, head);
     return err;
 }

@@ -10,7 +10,7 @@ typedef uint64_t TreeErr_t;
 typedef char* TreeElem_t;
 
 enum Err{
-    NO_MISTAKE,
+    NO_MISTAKE_T,
     NULL_NODE_PTR,
     INCORRECT_SIGN,
     INCORR_CONNECT_PARENT_CHILD,
@@ -20,6 +20,7 @@ enum Err{
     INCORR_OUTPUT_FILE,
     CANT_OPEN_OUT_FILE,
     CANT_FIND_NODE,
+    CANT_FIND_PATH,
 };
 
 struct TreeNode_t{
