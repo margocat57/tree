@@ -262,7 +262,10 @@ void SayAndPrintSaid(const char* format, ...){
     vsnprintf(definition_buffer, MAX_DEF_BUFFER, format, args);
     printf("%s", definition_buffer);
 
-    char speak_buffer[MAX_SPEAK_BUFFER] = {};
-    snprintf(speak_buffer, MAX_SPEAK_BUFFER, "say '%s'", definition_buffer);
+    char speak_buffer[MAX_SPEAK_BUFFER] = "say '";
+    strncat(speak_buffer, definition_buffer, MAX_SPEAK_BUFFER - strlen(speak_buffer) - 1);
+    strncat(speak_buffer, "'", MAX_SPEAK_BUFFER - strlen(speak_buffer) - 1);
+    // работает быстрее чем snprintf
+    // snprintf(speak_buffer, MAX_SPEAK_BUFFER, "say '%s'", definition_buffer);
     system(speak_buffer);
 }
