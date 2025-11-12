@@ -21,8 +21,8 @@ int main(){
     */
 
     tree_dump_func(head->root, head, "Printing tree before adding", __FILE__, __func__,  __LINE__);
-    /*
     TreeAkinate(head);
+    /*
     TreeMakeDefinition(head, "Dagaev");
     TreeFindCommonOpposite(head, "Dagaev", "Lukashov");
     TreeFindCommonOpposite(head, "Dagaev", "PashaT");

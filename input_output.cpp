@@ -80,6 +80,16 @@ TreeHead_t* MakeAkinatorTree(const char *name_of_file){
 
 static void ReadHeader(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
 
+static void Dump(size_t* pos, char* buffer, TreeNode_t* node, TreeHead_t* head){
+    fprintf(stderr, "-------\n", node->data);
+    if(node->parent){
+        fprintf(stderr, "%s\n", node->data);
+        node = node->parent;
+    }
+    fprintf(stderr, "after %s\n", node->data);
+    tree_dump_func(node, head, "%s", __FILE__, __func__, __LINE__, buffer + (*pos));
+}
+
 static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeHead_t* head){
     skip_space(buffer, pos);
     if(buffer[(*pos)] == '('){
@@ -90,14 +100,17 @@ static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, 
         ReadStrchr(pos, buffer, node, head); 
         skip_space(buffer, pos);
 
+        // Dump(pos, buffer, node, head);
         tree_dump_func(node, head, "Before making node->left|%s", __FILE__, __func__, __LINE__, buffer + (*pos));
 
         node->left = ReadNode(pos, node, buffer, head);
 
+        // Dump(pos, buffer, node, head);
         tree_dump_func(node, head, "Before making node->right|%s", __FILE__, __func__, __LINE__, buffer + (*pos));
 
         node->right = ReadNode(pos, node, buffer, head);
 
+        // Dump(pos, buffer, node, head);
         tree_dump_func(node, head, "After making left && right|%s", __FILE__, __func__, __LINE__, buffer + (*pos));
 
         skip_space(buffer, pos);
@@ -111,6 +124,8 @@ static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, 
     }
     return NULL;
 }
+
+
 
 static void ReadHeader(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head){
     size_t len = 0;
