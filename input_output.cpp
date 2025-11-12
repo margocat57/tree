@@ -6,14 +6,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <assert.h>
 #include "tree_func.h"
 #include "input_output.h"
 #include "tree_dump.h"
-#include "my_assert_without_ndebug.h"
 //----------------------------------------------------------------------------
 // Helping functions to find spaces
 
 static void skip_space(char* str, size_t* pos){
+    assert(str);
+    assert(pos);
+
     char ch = str[(*pos)];
     while(isspace(ch) && ch != '\0'){
         (*pos)++;
@@ -28,9 +31,9 @@ static void skip_space(char* str, size_t* pos){
 static bool incorr_work_with_stat(const char *name_of_file, struct stat *all_info_about_file);
 
 static char* read_file_to_string_array(const char *name_of_file){
-    MY_ASSERT_WTHOUT_NDEBUG(name_of_file != NULL);
+    assert(name_of_file != NULL);
     FILE *fptr = fopen(name_of_file, "r");
-    MY_ASSERT_WTHOUT_NDEBUG(fptr != NULL);
+    assert(fptr != NULL);
 
     struct stat file_info = {};
     bool is_stat_err = incorr_work_with_stat(name_of_file, &(file_info));
@@ -39,17 +42,17 @@ static char* read_file_to_string_array(const char *name_of_file){
     }
 
     char *all_strings_in_file = (char *)calloc(file_info.st_size + 1, sizeof(char));
-    MY_ASSERT_WTHOUT_NDEBUG(all_strings_in_file != NULL);
+    assert(all_strings_in_file != NULL);
 
-    MY_ASSERT_WTHOUT_NDEBUG(fread(all_strings_in_file, sizeof(char), file_info.st_size, fptr) == file_info.st_size);
+    assert(fread(all_strings_in_file, sizeof(char), file_info.st_size, fptr) == file_info.st_size);
 
     fclose(fptr);
     return all_strings_in_file;
 }
 
 static bool incorr_work_with_stat(const char *name_of_file, struct stat *all_info_about_file){
-    MY_ASSERT_WTHOUT_NDEBUG(name_of_file != NULL);
-    MY_ASSERT_WTHOUT_NDEBUG(all_info_about_file != NULL);
+    assert(name_of_file != NULL);
+    assert(all_info_about_file != NULL);
 
     if (stat(name_of_file, all_info_about_file) == -1){
         perror("Stat error");
@@ -67,7 +70,10 @@ static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, 
 
 static void ReadStrchr(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
 
+// проверка на битость файла - перед тем как создавать дерево
 TreeHead_t* MakeAkinatorTree(const char *name_of_file){
+    assert(name_of_file);
+
     char* buffer = read_file_to_string_array(name_of_file);
     if(!buffer){
         return NULL;
@@ -80,37 +86,25 @@ TreeHead_t* MakeAkinatorTree(const char *name_of_file){
 
 static void ReadHeader(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
 
-static void Dump(size_t* pos, char* buffer, TreeNode_t* node, TreeHead_t* head){
-    fprintf(stderr, "-------\n", node->data);
-    if(node->parent){
-        fprintf(stderr, "%s\n", node->data);
-        node = node->parent;
-    }
-    fprintf(stderr, "after %s\n", node->data);
-    tree_dump_func(node, head, "%s", __FILE__, __func__, __LINE__, buffer + (*pos));
-}
-
 static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeHead_t* head){
+    assert(pos);
+    assert(buffer);
+    assert(head);
+
     skip_space(buffer, pos);
     if(buffer[(*pos)] == '('){
         TreeNode_t* node = NodeCtor(NULL, node_parent, NULL, NULL, false);
         (*pos)++; //skip '('
         skip_space(buffer, pos);
 
-        ReadStrchr(pos, buffer, node, head); 
+        // ReadStrchr(pos, buffer, node, head); 
+        ReadHeader(pos, buffer, node, head); 
         skip_space(buffer, pos);
-
-        // Dump(pos, buffer, node, head);
-        tree_dump_func(node, head, "Before making node->left|%s", __FILE__, __func__, __LINE__, buffer + (*pos));
 
         node->left = ReadNode(pos, node, buffer, head);
 
-        // Dump(pos, buffer, node, head);
-        tree_dump_func(node, head, "Before making node->right|%s", __FILE__, __func__, __LINE__, buffer + (*pos));
-
         node->right = ReadNode(pos, node, buffer, head);
 
-        // Dump(pos, buffer, node, head);
         tree_dump_func(node, head, "After making left && right|%s", __FILE__, __func__, __LINE__, buffer + (*pos));
 
         skip_space(buffer, pos);
@@ -128,20 +122,43 @@ static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, 
 
 
 static void ReadHeader(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head){
+    assert(buffer);
+    assert(pos);
+    assert(node_for_header);
+    assert(head);
+
     size_t len = 0;
     sscanf(buffer + *pos, " \"%*[^\"]\"%n", &len);
     (*pos)++;
 
     node_for_header->data = buffer + *pos;
-    (*pos) += len - 2;
+    // если вдруг затесался знак вопроса-надо убрать будет мешать когда делаем определение
+    size_t first_question = strcspn(node_for_header->data, "?");
+    if(first_question >= len - 2){
+        // len-2 потому что sscanf учитывает кавычки - а нам нужно получить чисто длину строки
+        (*pos) += len - 2; 
 
-    buffer[(*pos)] = '\0'; // чтобы в узел не копировался весь буффер
-    (*pos)++;
+        buffer[(*pos)] = '\0'; // чтобы в узел не копировался весь буффер
+        (*pos)++; // нужно получить следующий символ после '\0'
+    }
+    else{
+        (*pos) += first_question; // сдвигаемся до первого вопроса
+        buffer[(*pos)] = '\0'; // заменяем его '\0' - обрезаем строку
 
-    head->capacity++;
+        (*pos) += len - 2 - first_question; // сдвигаемся уже до кавычки
+        buffer[(*pos)] = '\0'; // заменяем ее '\0' - обрезаем строку
+        (*pos)++; // нужно получить следующий символ после '\0'
+    }
+
+    head->capacity++; // удобнее всего увеличить capacity здесь
 }
 
 static void ReadStrchr(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head){
+    assert(buffer);
+    assert(pos);
+    assert(node_for_header);
+    assert(head);
+
     size_t len = 0;
     skip_space(buffer, pos);
     (*pos)++; // skip "
@@ -149,12 +166,25 @@ static void ReadStrchr(size_t* pos, char* buffer, TreeNode_t* node_for_header, T
 
     char* ch = strchr(buffer + *pos, '"');
     len = ch - (buffer + *pos);
+    // если вдруг затесался знак вопроса-надо убрать будет мешать когда делаем определение
+    size_t first_question = strcspn(node_for_header->data, "?");
+    // сравниваем его с длиной строки - если он за пределами строки то нам это не интересно
+    if(first_question >= len){
+        (*pos) += len;
 
-    (*pos) += len;
-    buffer[(*pos)] = '\0'; // чтобы в узел не копировался весь буффер
-    (*pos)++;
+        buffer[(*pos)] = '\0'; // чтобы в узел не копировался весь буффер
+        (*pos)++;  // нужно получить следующий символ после '\0'
+    }
+    else{
+        (*pos) += first_question; // сдвигаемся до первого вопроса
+        buffer[(*pos)] = '\0'; // заменяем его '\0' - обрезаем строку
 
-    head->capacity++;
+        (*pos) += len - first_question; // сдвигаемся уже до кавычки
+        buffer[(*pos)] = '\0'; // заменяем ее '\0' - обрезаем строку
+        (*pos)++; // нужно получить следующий символ после '\0'
+    }
+
+    head->capacity++; // удобнее всего увеличить capacity здесь
 }
 
 //------------------------------------------------------------------------------------------
@@ -164,8 +194,14 @@ static void ReadStrchr(size_t* pos, char* buffer, TreeNode_t* node_for_header, T
 static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head);
 
 TreeErr_t PutAkinatorFile(const char* file_name, TreeNode_t *node, const TreeHead_t* head){
+    if(!file_name){
+        fprintf(stderr, "INCORRECT OUTPUT FILE\n");
+        return INCORR_OUTPUT_FILE;
+    }
+    assert(head);
+
     TreeErr_t err = NO_MISTAKE_T;
-    err = TreeNodeVerify(head->root, head);
+    err = TreeVerify(head);
     if(err) return err;
 
     FILE* fp = fopen(file_name, "w");
@@ -186,8 +222,10 @@ static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeH
         fprintf(stderr, "INCORRECT OUTPUT FILE\n");
         return INCORR_OUTPUT_FILE;
     }
+    assert(head);
+
     TreeErr_t err = NO_MISTAKE_T;
-    err = TreeNodeVerify(head->root, head);
+    err = TreeVerify(head);
     if(err) return err;
 
     fprintf(file, "( \"%s\"", node->data);
@@ -209,4 +247,15 @@ static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeH
     fprintf(file, " ) ");
     err = TreeNodeVerify(node, head);
     return err;
+}
+
+//---------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+// Free memory for data needed for akinator
+
+void FreeMemoryAtAkinatorTree(TreeHead_t* head){
+    TreeDel(head);
+
+    free(head->buffer);
+    head->buffer = NULL;
 }

@@ -1,1 +1,1 @@
-( "Animal?"( "Poltorashka" nil nil ) ( "Teaches matan?"( "nes?"( "Dagaev" nil nil ) ( "Lukashov" nil nil )  ) ( "PashaT" nil nil )  )  ) 
+( "Animal"( "cat"( "Poltorashka" nil nil ) ( "Tarakan" nil nil )  ) ( "Teaches matan"( "nes"( "Dagaev" nil nil ) ( "Lukashov" nil nil )  ) ( "PashaT" nil nil )  )  ) 

@@ -7,6 +7,9 @@
 #include "stack_for_akinator/stack_func.h"
 #include "stack_for_akinator/stack.h"
 
+const int LEFT = 1;
+const int RIGHT = 0;
+
 TreeHead_t* TreeCtor(char* buffer);
 
 TreeNode_t* NodeCtor(TreeElem_t data, TreeNode_t* parent, TreeNode_t* left, TreeNode_t* right, bool need_data_free);

@@ -5,9 +5,10 @@
 
 const char* const TREE_SIGNATURE = "My_tree";
 const int POISON = -6666;
+const char* const NOTHING = "NOTHING";
 
 typedef uint64_t TreeErr_t;
-typedef char* TreeElem_t;
+typedef const char* TreeElem_t;
 
 enum Err{
     NO_MISTAKE_T,
