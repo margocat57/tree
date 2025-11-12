@@ -29,9 +29,11 @@ struct TreeNode_t{
     TreeNode_t* right;
     TreeNode_t* parent;
     const char* signature;
+    bool need_data_free;
 };
 
 struct TreeHead_t{
+    char* buffer;
     TreeNode_t* root;
     size_t capacity;
 };

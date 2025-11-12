@@ -13,38 +13,35 @@ static void PrintNodeConnect(const TreeNode_t* node, const TreeNode_t* node_chil
 static TreeNode_t* ReduceDepth(TreeNode_t* node, size_t* depth_change, const size_t* depth_compare);
 
 
-TreeHead_t* TreeCtor(){
+TreeHead_t* TreeCtor(char* buffer){
     TreeHead_t* head = (TreeHead_t*)calloc(1, sizeof(TreeHead_t));
-    head->root = NodeCtor((char* const)"NOTHING", NULL, NULL, NULL);
+    head->root = NodeCtor((char* const)"NOTHING", NULL, NULL, NULL, false);
     head->capacity = 1;
+    head->buffer = buffer;
 
     return head;
 }
 
-TreeNode_t* NodeCtor(TreeElem_t data, TreeNode_t* parent, TreeNode_t* left, TreeNode_t* right){
+TreeNode_t* NodeCtor(TreeElem_t data, TreeNode_t* parent, TreeNode_t* left, TreeNode_t* right, bool need_data_free){
     TreeNode_t* node = (TreeNode_t*)calloc(1, sizeof(TreeNode_t));
     if(!node){
         fprintf(stderr, "Can't alloc data for node");
         return NULL;
     }
 
-    if(data){
-        node->data = strdup(data);  
-    } 
-    else {
-        node->data = NULL;
-    }
+    node->data = data;  
     node->left = left;
     node->right = right;
     node->parent = parent;
     node->signature = TREE_SIGNATURE;
+    node->need_data_free = need_data_free;
 
     return node;
 }
 
 void NodeDtor(TreeNode_t* node){
-    if(node->data){
-        memset(node->data, 0, sizeof(TreeElem_t));
+    if(node->data && node->need_data_free){
+        memset(node->data, 0, strlen(node->data));
         free(node->data);
         node->data = NULL;
     }
@@ -171,6 +168,7 @@ TreeErr_t TreeDel(TreeHead_t* head){
     if(err) return err;
 
     TreeDelNodeRecur(head->root, head);
+    free(head->buffer);
     memset(head, 0, sizeof(TreeHead_t));
     free(head);
 
@@ -193,8 +191,6 @@ static void PrintNodeConnect(const TreeNode_t* node, const TreeNode_t* node_chil
 
 TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_file, int* rank){
     TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
 
     if(node->left){
         PrintNodeConnect(node, node->left, dot_file, rank);
@@ -202,7 +198,7 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
     }
 
     if(node->left && node->right){
-        fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#98FB98\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{%p} | {%s?} | {YES | NO }} \"];\n", node, *rank, node, node->data);
+        fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#98FB98\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{%p} | {%s} | {YES | NO }} \"];\n", node, *rank, node, node->data);
     }
     else{
         fprintf(dot_file, " node_%p[shape=\"Mrecord\", style=\"filled\", fillcolor=\"#98FB98\", rank=%d, color = \"#964B00\", penwidth=1.0, label=\"{{%p} |{%s} | {0 | 0}} \"];\n", node, *rank, node, node->data);
@@ -214,7 +210,6 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
     }
     (*rank)--;
 
-    err = TreeNodeVerify(node, head);
     return err;
 }
 

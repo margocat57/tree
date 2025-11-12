@@ -167,7 +167,7 @@ static TreeErr_t TreeAddObjAndQuestion(TreeNode_t* node, TreeHead_t* head){
     err = TreeNodeVerify(node, head);
     if(err) return err;
 
-    node->right = NodeCtor(node->data, node, NULL, NULL);
+    node->right = NodeCtor(node->data, node, NULL, NULL, node->need_data_free);
     node->left = AddPerson(node, "Who it was?");
 
     TreeQuesion(node, head);
@@ -182,7 +182,7 @@ static TreeNode_t* AddPerson(TreeNode_t* node, const char* str){
     char person[MAX_PERSON_NAME_SIZE] = {};
     scanf("%15[^\n]", person);
     clear_input_buffer();
-    return NodeCtor(person, node, NULL, NULL);
+    return NodeCtor(strdup(person), node, NULL, NULL, true);
 }
 
 //-------------------------------------------------------------------------------
@@ -203,8 +203,11 @@ static void TreeQuesion(TreeNode_t* node, TreeHead_t* head){
             fprintf(stderr, "Your answer contains no or not - please give answer without no or note\n");
         }
         else{
-            free(node->data);
+            if(node->need_data_free){
+                free(node->data);
+            }
             node->data = strdup(question);
+            node->need_data_free = true;
             get_answer_without_no = true;
         }
     }
@@ -359,56 +362,4 @@ TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char
     return err;
 }
 
-//------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------
-// For save akinator to disk
 
-static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head);
-
-TreeErr_t PutAkinatorFile(const char* file_name, TreeNode_t *node, const TreeHead_t* head){
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
-
-    FILE* fp = fopen(file_name, "w");
-    if(!fp){
-        fprintf(stderr, "Can't open output file\n");
-        return CANT_OPEN_OUT_FILE;
-    }
-
-    PutAkinatorTreeToFile(fp, node, head);
-    fclose(fp);
-
-    err = TreeNodeVerify(node, head);
-    return err;
-}
-
-static TreeErr_t PutAkinatorTreeToFile(FILE *file, TreeNode_t *node, const TreeHead_t* head){
-    if(!file){
-        fprintf(stderr, "INCORRECT OUTPUT FILE\n");
-        return INCORR_OUTPUT_FILE;
-    }
-    TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(head->root, head);
-    if(err) return err;
-
-    fprintf(file, "( \"%s\"", node->data);
-
-    if(node->left){
-        PutAkinatorTreeToFile(file, node->left, head);
-    } 
-    else{
-        fprintf(file, " nill");
-    }
-
-    if(node->right){
-        PutAkinatorTreeToFile(file, node->right, head);
-    } 
-    else{
-        fprintf(file, " nill");
-    }
-
-    fprintf(file, " ) ");
-    err = TreeNodeVerify(node, head);
-    return err;
-}

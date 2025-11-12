@@ -38,7 +38,10 @@ tree_dump.o: tree_dump.cpp
 tree_func.o: tree_func.cpp
 	$(COMP) -c $< -o $@ $(CFLAGS)
 
-akinator: main.o akinator.o tree_dump.o tree_func.o stack_for_akinator/hash.o stack_for_akinator/log.o stack_for_akinator/my_assert.o stack_for_akinator/stack_func.o
+input_output.o: input_output.cpp
+	$(COMP) -c $< -o $@ $(CFLAGS)
+
+akinator: main.o akinator.o tree_dump.o tree_func.o input_output.o stack_for_akinator/hash.o stack_for_akinator/log.o stack_for_akinator/my_assert.o stack_for_akinator/stack_func.o
 	$(COMP) -o $@ $^ 
 
 # $@ имя цели

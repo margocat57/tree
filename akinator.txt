@@ -1,1 +1,1 @@
-( "Animal"( "Poltorashka" nill nill ) ( "Teaches matan"( "New economic school professor and prorector"( "Dagaev" nill nill ) ( "Lukashov" nill nill )  ) ( "PashaT" nill nill )  )  ) 
+( "Animal?"( "Poltorashka" nil nil ) ( "Teaches matan?"( "nes?"( "Dagaev" nil nil ) ( "Lukashov" nil nil )  ) ( "PashaT" nil nil )  )  ) 
