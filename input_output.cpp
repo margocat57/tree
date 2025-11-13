@@ -148,8 +148,6 @@ static bool IsFileCorrect(char* buffer){
 }
 
 
-
-
 static void ReadHeader(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
 
 static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeHead_t* head){

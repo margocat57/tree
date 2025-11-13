@@ -272,7 +272,9 @@ void SayAndPrintSaid(const char* format, ...){
     size_t prefix_len = strlen("say '");
     vsnprintf(speak_buffer + prefix_len, MAX_SPEAK_BUFFER - strlen("say '") - 1, format, args);
 
+    printf(LIGHT_PURPLE);
     printf("%s", speak_buffer + prefix_len);
+    printf(COLOR_RESET);
     strncat(speak_buffer, "'", MAX_SPEAK_BUFFER - strlen(speak_buffer) - 1);
     system(speak_buffer);
 
@@ -322,7 +324,6 @@ TreeErr_t TreeDelNodeRecur(TreeNode_t* node, TreeHead_t* head){
     }
 
     NodeDtor(node);
-    node = NULL;
     head->capacity--;
 
     return err;

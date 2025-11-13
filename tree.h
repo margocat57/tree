@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#define GREY_BLUE "\033[38;2;171;196;197m"
+#define LIGHT_PURPLE "\033[38;2;146;110;174m"
+#define COLOR_RESET "\033[0m"
+
 const char* const TREE_SIGNATURE = "My_tree";
 const int POISON = -6666;
 const char* const NOTHING = "NOTHING";

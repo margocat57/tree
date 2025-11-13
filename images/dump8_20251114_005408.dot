@@ -1,0 +1,18 @@
+digraph G{
+ rankdir=TB;
+ charset="utf-8";
+ graph [bgcolor="#FFFAFA", nodesep = 0.3, ranksep=0.8];
+ node_0x7ff32c8041a0 -> node_0x7ff32c8041d0[color = "#964B00", dir = both];
+ node_0x7ff32c8041d0 -> node_0x7ff32c804250[color = "#964B00", dir = both];
+ node_0x7ff32c804250[shape="Mrecord", style="filled", fillcolor="#98FB98", rank=3, color = "#964B00", penwidth=1.0, label="{{0x7ff32c804250} |{Bulinskii} | {0 | 0}} "];
+ node_0x7ff32c8041d0[shape="Mrecord", style="filled", fillcolor="#98FB98", rank=2, color = "#964B00", penwidth=1.0, label="{{0x7ff32c8041d0} | {Semer} | {YES | NO }} "];
+ node_0x7ff32c8041d0 -> node_0x7ff32bf06760[color = "#964B00", dir = both];
+ node_0x7ff32bf06760[shape="Mrecord", style="filled", fillcolor="#98FB98", rank=3, color = "#964B00", penwidth=1.0, label="{{0x7ff32bf06760} |{Lukashov} | {0 | 0}} "];
+ node_0x7ff32c8041a0[shape="Mrecord", style="filled", fillcolor="#98FB98", rank=1, color = "#964B00", penwidth=1.0, label="{{0x7ff32c8041a0} | {Teaches matan} | {YES | NO }} "];
+ node_0x7ff32c8041a0 -> node_0x7ff32ca04080[color = "#964B00", dir = both];
+ node_0x7ff32ca04080 -> node_0x7ff32ca040b0[color = "#964B00", dir = both];
+ node_0x7ff32ca040b0[shape="Mrecord", style="filled", fillcolor="#98FB98", rank=3, color = "#964B00", penwidth=1.0, label="{{0x7ff32ca040b0} |{Bogdanov} | {0 | 0}} "];
+ node_0x7ff32ca04080[shape="Mrecord", style="filled", fillcolor="#98FB98", rank=2, color = "#964B00", penwidth=1.0, label="{{0x7ff32ca04080} | {Teaches algem} | {YES | NO }} "];
+ node_0x7ff32ca04080 -> node_0x7ff32ca04150[color = "#964B00", dir = both];
+ node_0x7ff32ca04150[shape="Mrecord", style="filled", fillcolor="#98FB98", rank=3, color = "#964B00", penwidth=1.0, label="{{0x7ff32ca04150} |{PashaT} | {0 | 0}} "];
+}

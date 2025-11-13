@@ -98,8 +98,10 @@ static TYPEANSWERS GetCheckAnswer(char* answer, TreeNode_t* node){
     assert(answer);
     assert(node);
 
-    printf("%s?(%s or %s?)\n", node->data, YES, NO);
+    printf(GREY_BLUE "This is %s?(%s or %s?)\n" COLOR_RESET, node->data, YES, NO);
+    printf(LIGHT_PURPLE);
     scanf("%7[^\n]", answer);
+    printf(COLOR_RESET);
     clear_input_buffer();
     answer =  str_tolower(answer);
     if(!strncmp(answer, YES, strlen(YES))){
@@ -122,7 +124,7 @@ static bool CheckAndProcessYes(TreeNode_t** node, TreeHead_t* head){
         *node = (*node)->left;
     }
     else{
-        printf("AI WON!!! The world will be invaded by deepseek!!!\n");
+        printf(GREY_BLUE "AI WON!!! The world will be invaded by deepseek!!!\n" COLOR_RESET);
         if(!PlayAgain()){
             return true;
         }
@@ -151,8 +153,10 @@ static bool CheckAndProcessNo(TreeNode_t** node, TreeHead_t* head){
 
 static bool PlayAgain(){
     char again[MAX_SHORT_ANSWER_SIZE] = {};
-    printf("Do you want to play again?(input %s if you want)\n", YES);
+    printf(GREY_BLUE "Do you want to play again?(input %s if you want)\n" COLOR_RESET, YES);
+    printf(LIGHT_PURPLE);
     scanf("%7[^\n]", again);
+    printf(COLOR_RESET);
     clear_input_buffer();
     str_tolower(again);
     if(!strncmp(again, YES, strlen(YES))){
@@ -172,7 +176,6 @@ static void TreeQuestion(TreeNode_t* node);
 
 static bool IsFeatureTrueForNewPerson(char* answer, TreeNode_t* node_left);
 
-// иметь вариативность
 static TreeErr_t TreeAddObjAndQuestion(TreeNode_t* node, TreeHead_t* head){
     assert(head);
 
@@ -200,9 +203,11 @@ static TreeNode_t* AddPerson(TreeNode_t* node, const char* str){
     assert(str);
     assert(node);
 
-    printf("%s\n", str);
+    printf(GREY_BLUE "%s\n" COLOR_RESET, str);
     char person[MAX_PERSON_NAME_SIZE] = {};
+    printf(LIGHT_PURPLE);
     scanf("%15[^\n]", person);
+    printf(COLOR_RESET);
     clear_input_buffer();
     return NodeCtor(strdup(person), node, NULL, NULL, true);
 }
@@ -210,7 +215,7 @@ static TreeNode_t* AddPerson(TreeNode_t* node, const char* str){
 //-------------------------------------------------------------------------------
 // For asking dividing questions
 
-static void GetDividingQuestion(char* question);
+static void GetDividingQuestion(char* question, TreeNode_t* node);
 
 static bool IsForbiddenSymbolsInStr(char* question);
 
@@ -222,12 +227,13 @@ static void TreeQuestion(TreeNode_t* node){
     char question[MAX_QUESTION_SIZE] = {};
 
     while(!get_answer_without_no){
-        GetDividingQuestion(question);
+        GetDividingQuestion(question, node);
 
         if(IsForbiddenSymbolsInStr(question)){
             fprintf(stderr, "Your answer contains no or not - please give answer without no or note\n");
         }
         else{
+            printf(GREY_BLUE "I remembered, you can't fool me now\n" COLOR_RESET);
             if(node->need_data_free){
                 /** 
                  * Обоснование необходимости снятия const смотрите в функции NodeDtor,
@@ -244,11 +250,14 @@ static void TreeQuestion(TreeNode_t* node){
 }
 #pragma GCC diagnostic pop
 
-static void GetDividingQuestion(char* question){
+static void GetDividingQuestion(char* question, TreeNode_t* node){
     assert(question);
-    printf("What is dividing question?\n");
-    printf("Do not use words no or not in the question\n");
+    printf(GREY_BLUE "How %s is different fron %s?\n" COLOR_RESET, node->left->data, node->right->data);
+    printf(GREY_BLUE "Do not use words no or not in your question\n" COLOR_RESET);
+    printf(GREY_BLUE "It is ..." COLOR_RESET);
+    printf(LIGHT_PURPLE);
     scanf("%99[^\n]", question);
+    printf(COLOR_RESET);
     clear_input_buffer();
 }
 
@@ -266,8 +275,10 @@ static bool IsForbiddenSymbolsInStr(char* question){
 static bool IsFeatureTrueForNewPerson(char* answer, TreeNode_t* node_left){
     assert(answer);
     assert(node_left);
-    printf("Is you feature true for %s?(input %s if not)\n", node_left->data, NO);
+    printf(GREY_BLUE "Is you feature true for %s?(input %s if not)\n" COLOR_RESET, node_left->data, NO);
+    printf(LIGHT_PURPLE);
     scanf("%7[^\n]", answer);
+    printf(COLOR_RESET);
     clear_input_buffer();
     answer =  str_tolower(answer);
     if(!strncmp(answer, NO, strlen(NO))){
@@ -287,7 +298,7 @@ TreeErr_t TreeAddFirstQuestion(TreeHead_t* head){
     err = TreeVerify(head);
     if(err) return err;
 
-    printf("Akinator is empty - need to add first question\n");
+    printf(GREY_BLUE "Akinator is empty - need to add first question\n" COLOR_RESET);
     TreeQuestion(head->root);
 
     head->root->left = AddPerson(head->root, "For who this feature is true?");
