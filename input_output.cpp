@@ -135,6 +135,7 @@ static bool IsFileCorrect(char* buffer){
         return false;
     }
     size_t count = 0;
+    char* ch = buffer;
     for (size_t p = 1; buffer[p] != '\0'; p++) {
         if(is_nil(buffer, p)){
             count++;
