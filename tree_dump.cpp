@@ -5,6 +5,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #define CHECK_AND_RET_DUMP(bad_condition, msg)\
     if(bad_condition){ \
@@ -23,6 +24,8 @@ static void generate_svg_file(const filenames_for_dump* dump);
 static void tree_dump_html(const char* img, const char* debug_msg, const char *file, const char *func, int line, va_list args)  __attribute__((format(printf, 2, 6)));
 
 void tree_dump_func(const TreeNode_t* node, const TreeHead_t* head, const char* debug_msg, const char *file, const char *func,  int line, ...){
+    assert(file);
+
     filenames_for_dump dump = filename_ctor();
     generate_dot_file(node, head, dump.dot_filename);
     generate_svg_file(&dump);

@@ -240,9 +240,19 @@ TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head){
         fprintf(stderr, "Incorr connection between parent(%p) and RIGHT child(%p) nodes\n", node, node->right);
         return INCORR_RIGHT_CONNECT;
     }
+    if((node->left && !node->right) || (node->right && !node->left)){
+        tree_dump_func(node, head, "Incorr connection needed to akinate between parent(%p), RIGHT child(%p), LEFT child(%p) \n", __FILE__, __func__, __LINE__, node, node->right, node->left);
+        fprintf(stderr, "Incorr connection needed to akinate between parent(%p), RIGHT child(%p), LEFT child(%p) nodes\n", node, node->right, node->left);
+        return INCORR_AKINATE_CONNECT;
+    }
 
-    if(node->left && node->right){
-        return TreeNodeVerify(node->left, head) && TreeNodeVerify(node->right, head);
+    if(node->left){
+        TreeErr_t err = TreeNodeVerify(node->left, head);
+        if(err) return err;
+    }
+    if(node->right){
+        TreeErr_t err = TreeNodeVerify(node->right, head);
+        if(err) return err;
     }
 
     return NO_MISTAKE;

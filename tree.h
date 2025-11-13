@@ -22,6 +22,7 @@ enum Err{
     CANT_OPEN_OUT_FILE,
     CANT_FIND_NODE,
     CANT_FIND_PATH,
+    INCORR_AKINATE_CONNECT,
 };
 
 struct TreeNode_t{

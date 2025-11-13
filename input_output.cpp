@@ -10,6 +10,10 @@
 #include "tree_func.h"
 #include "input_output.h"
 #include "tree_dump.h"
+
+void FreeMemoryAtAkinatorTree(TreeHead_t* head);
+
+
 //----------------------------------------------------------------------------
 // Helping functions to find spaces
 
@@ -22,6 +26,25 @@ static void skip_space(char* str, size_t* pos){
         (*pos)++;
         ch = str[(*pos)];
     }
+}
+
+static size_t count_symb(char* buffer, char symb){
+    assert(buffer);
+
+    size_t count = 0;
+    for (const char *p = buffer; *p != '\0'; p++) {
+        if (*p == symb) {
+            count++;
+        }
+    }
+    return count;
+}
+
+static bool is_nil(char* buffer, size_t p){
+    if(!isalpha(buffer[p-1]) && buffer[p] == 'n' && buffer[p+1] == 'i' && buffer[p+2] == 'l' && !isalpha(buffer[p+3])){
+        return true;
+    }
+    return false;
 }
 
 //-----------------------------------------------------------------------------------------
@@ -66,6 +89,8 @@ static bool incorr_work_with_stat(const char *name_of_file, struct stat *all_inf
 //-----------------------------------------------------------------------------------------
 // Make akinator tree
 
+static bool IsFileCorrect(char* buffer);
+
 static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeHead_t* head);
 
 static void ReadStrchr(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
@@ -78,11 +103,51 @@ TreeHead_t* MakeAkinatorTree(const char *name_of_file){
     if(!buffer){
         return NULL;
     }
+    if(!IsFileCorrect(buffer)){
+        fprintf(stderr, "File is not correct - can't work\n");
+        return NULL;
+    }
     TreeHead_t* head = TreeCtor(buffer);
     size_t pos = 0;
     head->root = ReadNode(&pos, NULL, buffer, head);
+    if(TreeVerify(head)){
+        fprintf(stderr, "File is not correct - can't work with created tree\n");
+        FreeMemoryAtAkinatorTree(head);
+        return NULL;
+    }
     return head;
 }
+
+static bool IsFileCorrect(char* buffer){
+    assert(buffer);
+    size_t pos = 0;
+    size_t temp_pos = 0;
+    size_t first_symb = count_symb(buffer , '(');
+    size_t second_symb = count_symb(buffer , ')');
+    size_t third_symb = count_symb(buffer , '"');
+    if(first_symb != second_symb){
+        return false;
+    }
+    if(third_symb % 2 != 0){
+        return false;
+    }
+    if(third_symb != 2 * first_symb || third_symb != 2 * second_symb){
+        return false;
+    }
+    size_t count = 0;
+    for (size_t p = 1; buffer[p] != '\0'; p++) {
+        if(is_nil(buffer, p)){
+            count++;
+        }
+    }
+    if(count % 2 != 0){
+        return false;
+    }
+    return true;
+}
+
+
+
 
 static void ReadHeader(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
 
