@@ -2,6 +2,8 @@
 #define AKINATOR_H
 #include "tree.h"
 
+TreeErr_t AkinatorMenuAndMainFunc(TreeHead_t* head);
+
 TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name);
 
 TreeErr_t TreeAkinate(TreeHead_t* head);

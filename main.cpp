@@ -6,6 +6,8 @@
 
 int main(){
     TreeHead_t* head = MakeAkinatorTree("akinator.txt");
+    AkinatorMenuAndMainFunc(head);
+    FreeMemoryAtAkinatorTree(head);
     /*
     TreeHead_t* head = TreeCtor("akinator.txt");
     TreeNode_t * l1 = NodeCtor("Animal", NULL, NULL, NULL, false);
@@ -20,18 +22,16 @@ int main(){
     l2_r->right = l3_r;
     */
 
-    tree_dump_func(head->root, head, "Printing tree before adding", __FILE__, __func__,  __LINE__);
-    TreeAkinate(head);
+    // tree_dump_func(head->root, head, "Printing tree before adding", __FILE__, __func__,  __LINE__);
+    // TreeAkinate(head);
     // TreeMakeDefinition(head, "Koldunov");
     // TreeFindCommonOpposite(head, "Dagaev", "Lukashov");
     // TreeFindCommonOpposite(head, "Tarakan", "Petrovich");
     // TreeFindCommonOpposite(head, "Dagaev", "Poltorashka");
 
-    tree_dump_func(head->root, head, "Printing tree after adding", __FILE__, __func__,  __LINE__);
+    // tree_dump_func(head->root, head, "Printing tree after adding", __FILE__, __func__,  __LINE__);
 
-    PutAkinatorFile("akinator.txt", head->root, head);
-
-    FreeMemoryAtAkinatorTree(head);
+    // PutAkinatorFile("akinator.txt", head->root, head);
 
     return 0;
 }

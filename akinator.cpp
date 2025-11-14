@@ -1,6 +1,7 @@
 #include "akinator.h"
 #include "tree_dump.h"
 #include "tree_func.h"
+#include "input_output.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,6 +32,60 @@ static void clear_input_buffer(void){
     int c = 0; 
     while ((c = getchar()) != '\n') {;}
 }
+
+//-------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------
+// Akinator menu - funcyion
+
+TreeErr_t AkinatorMenuAndMainFunc(TreeHead_t* head){
+    TreeErr_t err = NO_MISTAKE;
+    err = TreeVerify(head);
+    if(err) return err;
+
+    bool is_quit = false;
+    char buffer[MAX_PERSON_NAME_SIZE] = {};
+    char buffer2[MAX_PERSON_NAME_SIZE] = {};
+    char buffer_file[MAX_QUESTION_SIZE] = {};
+    char choise = 'x';
+
+    while(!is_quit){
+        printf(GREY_BLUE "\nWhat do you want?\n" COLOR_RESET);
+        printf(GREY_BLUE "[G]uess? (put G)\n" COLOR_RESET);
+        printf(GREY_BLUE "[M]ake definition? (put M)\n" COLOR_RESET);
+        printf(GREY_BLUE "[C]ompare objects? (put C)\n" COLOR_RESET);
+        printf(GREY_BLUE "[D]ump tree? (put S)\n" COLOR_RESET);
+        printf(GREY_BLUE "[S]ave and quit? (put S)\n" COLOR_RESET);
+        printf(GREY_BLUE "Quit without saving? (put other letter)\n" COLOR_RESET);
+
+        printf(LIGHT_PURPLE); choise = getchar(); printf(COLOR_RESET);
+        clear_input_buffer();
+        switch(choise){
+            case 'G':   TreeAkinate(head); break;
+            case 'M':   printf(GREY_BLUE "Definition of who do you want to make?\n" COLOR_RESET);
+                        printf(LIGHT_PURPLE); scanf("%s", buffer); printf(COLOR_RESET);
+                        TreeMakeDefinition(head, buffer);
+                        break;
+            case 'C':   printf(GREY_BLUE "Compare who do you want?\n" COLOR_RESET);
+                        printf(LIGHT_PURPLE); scanf("%s", buffer); printf(COLOR_RESET);
+                        printf(LIGHT_PURPLE); scanf("and %s", buffer2); printf(COLOR_RESET);
+                        TreeFindCommonOpposite(head, buffer, buffer2); 
+                        break;   
+            case 'D':   tree_dump_func(head->root, head, "Printing tree", __FILE__, __func__,  __LINE__);
+                        break;
+            case 'S':   printf(GREY_BLUE "Put name of file where write:\n" COLOR_RESET);
+                        printf(LIGHT_PURPLE); scanf("%s", buffer_file); printf(COLOR_RESET);
+                        PutAkinatorFile(buffer_file, head->root, head);
+                        is_quit = true;
+                        break;
+            default:    is_quit = true;
+        }
+        err = TreeVerify(head);
+        if(err) return err;
+    }
+
+    return TreeVerify(head);
+}
+
 
 //-------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------
