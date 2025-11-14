@@ -32,6 +32,6 @@ TreeErr_t TreeVerify(const TreeHead_t* head);
 
 void NodeDtor(TreeNode_t* node);
 
-void SayAndPrintSaid(const char* format, ...) __attribute__ ((format (printf, 1, 2)));
+void SayAndPrintSaid(const char* color, const char* format, ...) __attribute__ ((format (printf, 2, 3)));
 
 #endif //TREE_FUNC_H

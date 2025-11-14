@@ -262,20 +262,22 @@ TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head){
 //----------------------------------------------------------------------------------
 // Function that says something and print said info
 
-void SayAndPrintSaid(const char* format, ...){
+void SayAndPrintSaid(const char* color, const char* format, ...){
     assert(format);
 
     va_list args = {};
     va_start(args, format);
 
-    char speak_buffer[MAX_SPEAK_BUFFER] = "say '";
-    size_t prefix_len = strlen("say '");
+    char speak_buffer[MAX_SPEAK_BUFFER] = "say \"";
+    size_t prefix_len = strlen("say \"");
     vsnprintf(speak_buffer + prefix_len, MAX_SPEAK_BUFFER - strlen("say '") - 1, format, args);
 
-    printf(LIGHT_PURPLE);
+    if(color){
+        printf(color);
+    }
     printf("%s", speak_buffer + prefix_len);
     printf(COLOR_RESET);
-    strncat(speak_buffer, "'", MAX_SPEAK_BUFFER - strlen(speak_buffer) - 1);
+    strncat(speak_buffer, "\"", MAX_SPEAK_BUFFER - strlen(speak_buffer) - 1);
     system(speak_buffer);
 
     va_end(args);
