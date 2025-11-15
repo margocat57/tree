@@ -46,9 +46,8 @@ TreeNode_t* NodeCtor(TreeElem_t data, TreeNode_t* parent, TreeNode_t* left, Tree
 //----------------------------------------------------------------------------------
 // Find node by string
 
-TreeErr_t TreeFindNode(TreeNode_t* node, TreeHead_t* head, const char* name, TreeNode_t** node_ptr){
+TreeErr_t CreatePath(TreeNode_t* node, TreeHead_t* head, const char* name, stack_t_t* stack, bool *found){
     assert(name);
-    assert(node_ptr);
     assert(head);
     assert(node);
 
@@ -56,102 +55,35 @@ TreeErr_t TreeFindNode(TreeNode_t* node, TreeHead_t* head, const char* name, Tre
     err = TreeVerify(head);
     if(err) return err;
 
+    int left = LEFT;
+    int right = RIGHT;
+
     if(!strcmp(name, node->data)){
-        *node_ptr = node;
-        err = TreeNodeVerify(node, head);
-        return err;
+        *found = true;
+        if(node->left || node->right){ // то есть нам сказали найти не объект а вопрос
+            return CANT_FIND_PATH;     // это плохо поэтому мы возвращаем ошибку
+        }
+        return TreeNodeVerify(node, head);
     }
-    if(node->left){
-        TreeFindNode(node->left, head, name, node_ptr);
+    if(node->left && !(*found)){
+        CreatePath(node->left, head, name, stack, found);
+        if(*found){
+            stack_push(stack, &left);
+            return TreeNodeVerify(node, head);
+        }
     }
-    if(node->right){
-        TreeFindNode(node->right, head, name, node_ptr);
+    if(node->right && !(*found)){
+        CreatePath(node->right, head, name, stack, found);
+        if(*found){
+            stack_push(stack, &right);
+            return TreeNodeVerify(node, head);
+        }
     }
 
     err = TreeNodeVerify(node, head);
     return err;
 }
 
-//----------------------------------------------------------------------------------
-// Finding depth
-
-static size_t TreeFindNodeDepth(TreeNode_t* node, TreeNode_t* node_comp){
-    assert(node_comp);
-    assert(node);
-
-    size_t depth = 0;
-    while(node != node_comp->parent){
-        depth++;
-        node = node->parent;
-    }
-    return depth;
-}
-
-//----------------------------------------------------------------------------------
-// Reducing depth
-
-static TreeNode_t* ReduceDepth(TreeNode_t* node, size_t* depth_change, const size_t* depth_compare){
-    assert(depth_change);
-    assert(depth_compare);
-    assert(node);
-
-    while(*depth_change > *depth_compare){
-        node = node->parent;
-        (*depth_change)--;
-    }
-    return node;
-}
-
-//----------------------------------------------------------------------------------
-// Finding common node
-
-TreeNode_t* TreeFindCommonNode(TreeHead_t* head, TreeNode_t* node1, TreeNode_t* node2){
-    assert(head);
-    assert(node1);
-    assert(node2);
-
-    size_t depth1 = TreeFindNodeDepth(node1, head->root);
-    size_t depth2 = TreeFindNodeDepth(node2, head->root);
-
-    node1 = ReduceDepth(node1, &depth1, &depth2);
-    node2 = ReduceDepth(node2, &depth2, &depth1);
-
-    while(node1 != node2 && node1 && node2){
-        node1 = node1->parent;
-        node2 = node2->parent;
-    }
-    if(!node1 || !node2){
-        return head->root;
-    }
-    return node1;
-}
-
-//----------------------------------------------------------------------------------
-// Filling stack with path to node
-
-stack_t_t* TreeFindPathToNode(TreeNode_t* node, TreeNode_t* node_dst){
-    assert(node);
-
-    size_t depth = TreeFindNodeDepth(node, node_dst);
-    stack_t_t* path = stack_ctor(depth, __FILE__, __func__, __LINE__);
-    if(!path){
-        fprintf(stderr, "Can't alloc memory for buffer");
-        return NULL;
-    }
-    int left = LEFT;
-    int right = RIGHT;
-
-    while(node != node_dst){
-        if(node == node->parent->left){
-            stack_push(path, &left);
-        }
-        if(node == node->parent->right){
-            stack_push(path, &right);
-        }
-        node = node->parent;
-    }
-    return path;
-}
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
@@ -269,15 +201,16 @@ void SayAndPrintSaid(const char* color, const char* format, ...){
     va_start(args, format);
 
     char speak_buffer[MAX_SPEAK_BUFFER] = "say \"";
-    size_t prefix_len = strlen("say \"");
-    vsnprintf(speak_buffer + prefix_len, MAX_SPEAK_BUFFER - strlen("say '") - 1, format, args);
+    // сделать констатой 
+    size_t prefix_len = sizeof("say \"") - 1;
+    int symb = vsnprintf(speak_buffer + prefix_len, MAX_SPEAK_BUFFER - prefix_len - 2, format, args);
 
     if(color){
         printf(color);
     }
     printf("%s", speak_buffer + prefix_len);
     printf(COLOR_RESET);
-    strncat(speak_buffer, "\"", MAX_SPEAK_BUFFER - strlen(speak_buffer) - 1);
+    speak_buffer[symb + prefix_len] = '\"';
     system(speak_buffer);
 
     va_end(args);

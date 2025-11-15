@@ -89,13 +89,10 @@ static bool incorr_work_with_stat(const char *name_of_file, struct stat *all_inf
 //-----------------------------------------------------------------------------------------
 // Make akinator tree
 
-static bool IsFileCorrect(char* buffer);
-
-static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeHead_t* head);
+static TreeErr_t ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeNode_t** node_to_write, TreeHead_t* head);
 
 static void ReadStrchr(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
 
-// проверка на битость файла - перед тем как создавать дерево
 TreeHead_t* MakeAkinatorTree(const char *name_of_file){
     assert(name_of_file);
 
@@ -103,13 +100,12 @@ TreeHead_t* MakeAkinatorTree(const char *name_of_file){
     if(!buffer){
         return NULL;
     }
-    if(!IsFileCorrect(buffer)){
-        fprintf(stderr, "File is not correct - can't work\n");
-        return NULL;
-    }
     TreeHead_t* head = TreeCtor(buffer);
     size_t pos = 0;
-    head->root = ReadNode(&pos, NULL, buffer, head);
+    if(ReadNode(&pos, NULL, buffer, &(head->root), head)){
+        FreeMemoryAtAkinatorTree(head);
+        return NULL;
+    }
     if(TreeVerify(head)){
         fprintf(stderr, "File is not correct - can't work with created tree\n");
         FreeMemoryAtAkinatorTree(head);
@@ -118,42 +114,13 @@ TreeHead_t* MakeAkinatorTree(const char *name_of_file){
     return head;
 }
 
-static bool IsFileCorrect(char* buffer){
-    assert(buffer);
-    size_t pos = 0;
-    size_t temp_pos = 0;
-    size_t first_symb = count_symb(buffer , '(');
-    size_t second_symb = count_symb(buffer , ')');
-    size_t third_symb = count_symb(buffer , '"');
-    if(first_symb != second_symb){
-        return false;
-    }
-    if(third_symb % 2 != 0){
-        return false;
-    }
-    if(third_symb != 2 * first_symb || third_symb != 2 * second_symb){
-        return false;
-    }
-    size_t count = 0;
-    char* ch = buffer;
-    for (size_t p = 1; buffer[p] != '\0'; p++) {
-        if(is_nil(buffer, p)){
-            count++;
-        }
-    }
-    if(count % 2 != 0){
-        return false;
-    }
-    return true;
-}
-
-
 static void ReadHeader(size_t* pos, char* buffer, TreeNode_t* node_for_header, TreeHead_t* head);
 
-static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeHead_t* head){
+static TreeErr_t ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, TreeNode_t** node_to_write, TreeHead_t* head){
     assert(pos);
     assert(buffer);
     assert(head);
+    assert(node_to_write);
 
     skip_space(buffer, pos);
     if(buffer[(*pos)] == '('){
@@ -161,26 +128,44 @@ static TreeNode_t* ReadNode(size_t* pos, TreeNode_t* node_parent, char* buffer, 
         (*pos)++; //skip '('
         skip_space(buffer, pos);
 
+        if(buffer[(*pos)] != '"'){
+            fprintf(stderr, "Incorr file\n");
+            return INCORR_FILE;
+        }
+
         // ReadStrchr(pos, buffer, node, head); 
         ReadHeader(pos, buffer, node, head); 
         skip_space(buffer, pos);
 
-        node->left = ReadNode(pos, node, buffer, head);
+        if(ReadNode(pos, node, buffer, &(node->left) ,head)){
+            fprintf(stderr, "Incorr file\n");
+            return INCORR_FILE;
+        }
 
-        node->right = ReadNode(pos, node, buffer, head);
+        if(ReadNode(pos, node, buffer, &(node->right) ,head)){
+            fprintf(stderr, "Incorr file\n");
+            return INCORR_FILE;
+        }
 
         tree_dump_func(node, head, "After making left && right|%s", __FILE__, __func__, __LINE__, buffer + (*pos));
 
         skip_space(buffer, pos);
+        if(buffer[(*pos)] != ')'){
+            fprintf(stderr, "Incorr file\n");
+            return INCORR_FILE;
+        }
         (*pos)++; //skip ')'
         skip_space(buffer, pos);
-        return node;
+        *node_to_write = node;
+        return NO_MISTAKE_T;
     }
     else if(!strncmp(buffer + *pos, "nil", 3)){
         (*pos) += strlen("nil");
-        return NULL;
+        *node_to_write = NULL;
+        return NO_MISTAKE_T;
     }
-    return NULL;
+    fprintf(stderr, "Incorr file\n");
+    return INCORR_FILE;
 }
 
 

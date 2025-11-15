@@ -18,7 +18,7 @@ TreeErr_t TreeDelNodeRecur(TreeNode_t* node, TreeHead_t* head);
 
 TreeErr_t TreeDel(TreeHead_t* head);
 
-TreeErr_t TreeFindNode(TreeNode_t* node, TreeHead_t* head, const char* name, TreeNode_t** node_ptr);
+TreeErr_t CreatePath(TreeNode_t* node, TreeHead_t* head, const char* name, stack_t_t* stack, bool *found);
 
 stack_t_t* TreeFindPathToNode(TreeNode_t* node, TreeNode_t* node_dst);
 
