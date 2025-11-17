@@ -21,7 +21,7 @@ static void generate_dot_file(const TreeNode_t* node, const TreeHead_t* head, co
 
 static void generate_svg_file(const filenames_for_dump* dump);
 
-static void tree_dump_html(const char* img, const char* debug_msg, const char *file, const char *func, int line, va_list args)  __attribute__((format(printf, 2, 6)));
+static void tree_dump_html(const char* img, const char* debug_msg, const char *file, const char *func, int line, va_list args);  
 
 void tree_dump_func(const TreeNode_t* node, const TreeHead_t* head, const char* debug_msg, const char *file, const char *func,  int line, ...){
     assert(file);
@@ -44,6 +44,7 @@ void tree_dump_func(const TreeNode_t* node, const TreeHead_t* head, const char* 
 static void tree_dump_html(const char* img, const char* debug_msg, const char *file, const char *func, int line,va_list args) {
     static int launch_num = 0;
     FILE* html_output = NULL;
+    
     if(launch_num == 0){
         html_output = fopen(LOG_FILE, "w");
         CHECK_AND_RET_DUMP(!html_output, "Can't open html file\n");

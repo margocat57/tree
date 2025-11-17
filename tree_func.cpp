@@ -6,10 +6,6 @@
 
 const size_t MAX_SPEAK_BUFFER  = 2060;
 
-static size_t TreeFindNodeDepth(TreeNode_t* node, TreeNode_t* node_comp);
-
-static TreeNode_t* ReduceDepth(TreeNode_t* node, size_t* depth_change, const size_t* depth_compare);
-
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 // Tree and node constructors
@@ -52,7 +48,7 @@ TreeErr_t CreatePath(TreeNode_t* node, TreeHead_t* head, const char* name, stack
     assert(node);
 
     TreeErr_t err = NO_MISTAKE;
-    err = TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
     if(err) return err;
 
     int left = LEFT;
@@ -63,24 +59,27 @@ TreeErr_t CreatePath(TreeNode_t* node, TreeHead_t* head, const char* name, stack
         if(node->left || node->right){ // то есть нам сказали найти не объект а вопрос
             return CANT_FIND_PATH;     // это плохо поэтому мы возвращаем ошибку
         }
-        return TreeNodeVerify(node, head);
+        DEBUG_TREE(err = TreeNodeVerify(node, head);)
+        return err;
     }
     if(node->left && !(*found)){
         CreatePath(node->left, head, name, stack, found);
         if(*found){
             stack_push(stack, &left);
-            return TreeNodeVerify(node, head);
+            DEBUG_TREE(err = TreeNodeVerify(node, head);)
+            return err;
         }
     }
     if(node->right && !(*found)){
         CreatePath(node->right, head, name, stack, found);
         if(*found){
             stack_push(stack, &right);
-            return TreeNodeVerify(node, head);
+            DEBUG_TREE(err = TreeNodeVerify(node, head);)
+            return err;
         }
     }
 
-    err = TreeNodeVerify(node, head);
+    DEBUG_TREE(err = TreeNodeVerify(node, head);)
     return err;
 }
 
@@ -95,11 +94,9 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
     assert(node);
     assert(rank);
 
-    TreeErr_t err = NO_MISTAKE;
-
     if(node->left){
         PrintNodeConnect(node, node->left, dot_file, rank);
-        PrintNode(node->left, head, dot_file, rank);
+        CHECK_AND_RET_TREEERR(PrintNode(node->left, head, dot_file, rank))
     }
 
     if(node->left && node->right){
@@ -114,11 +111,10 @@ TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_fi
 
     if(node->right){
         PrintNodeConnect(node, node->right, dot_file, rank);
-        PrintNode(node->right, head, dot_file, rank);
+        CHECK_AND_RET_TREEERR(PrintNode(node->right, head, dot_file, rank))
     }
     (*rank)--;
-
-    return err;
+    return NO_MISTAKE_T;
 }
 
 static void PrintNodeConnect(const TreeNode_t* node, const TreeNode_t* node_child, FILE* dot_file, int* rank){
@@ -179,11 +175,13 @@ TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head){
     }
 
     if(node->left){
-        TreeErr_t err = TreeNodeVerify(node->left, head);
+        TreeErr_t err = NO_MISTAKE;
+        DEBUG_TREE(err = TreeNodeVerify(node->left, head);)
         if(err) return err;
     }
     if(node->right){
-        TreeErr_t err = TreeNodeVerify(node->right, head);
+        TreeErr_t err = NO_MISTAKE;
+        DEBUG_TREE(err = TreeNodeVerify(node->right, head);)
         if(err) return err;
     }
 
@@ -224,10 +222,10 @@ TreeErr_t TreeDel(TreeHead_t* head){
     assert(head);
 
     TreeErr_t err = NO_MISTAKE;
-    err = TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
     if(err) return err;
 
-    TreeDelNodeRecur(head->root, head);
+    CHECK_AND_RET_TREEERR(TreeDelNodeRecur(head->root, head))
 
     memset(head, 0, sizeof(TreeHead_t));
     free(head);
@@ -237,16 +235,16 @@ TreeErr_t TreeDel(TreeHead_t* head){
 
 TreeErr_t TreeDelNodeRecur(TreeNode_t* node, TreeHead_t* head){
     TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(node, head);
+    DEBUG_TREE(err = TreeNodeVerify(node, head);)
     if(err) return err;
 
     TreeNode_t* parent = node->parent;
 
     if(node->left){
-        TreeDelNodeRecur(node->left, head);
+        CHECK_AND_RET_TREEERR(TreeDelNodeRecur(node->left, head))
     }
     if(node->right){
-        TreeDelNodeRecur(node->right, head);
+        CHECK_AND_RET_TREEERR(TreeDelNodeRecur(node->right, head))
     }
 
     if(parent != NULL){

@@ -11,7 +11,6 @@
 const size_t MAX_SHORT_ANSWER_SIZE = 8;
 const size_t MAX_QUESTION_SIZE = 100;
 const size_t MAX_PERSON_NAME_SIZE = 16;
-const size_t CHAR_SIZE = 0;
 const char* YES = "yes";
 const char* NO = "no";
 
@@ -29,7 +28,8 @@ static TreeErr_t TreeAddObjAndQuestion(TreeNode_t* node, TreeHead_t* head);
 
 static char* str_tolower(char* str){
     assert(str);
-    for (size_t ch = 0; ch < strlen(str); ch++){
+    size_t len = strlen(str);
+    for (size_t ch = 0; ch < len; ch++){
         str[ch] = tolower(str[ch]);
     }
     return str;
@@ -42,77 +42,103 @@ static void clear_input_buffer(void){
     }while(c != '\n');
 }
 
-static void akinator_scanf(char* buffer, size_t buffer_size){
+static void akinator_scanf(char* buffer, size_t max_num_of_symb_to_read){
     printf(LIGHT_PURPLE); 
-    if(buffer_size == 0){
-        scanf("%c", buffer);
-        clear_input_buffer();
-    }
-    else{
-        fgets(buffer, buffer_size, stdin);
-        buffer[strcspn(buffer, "\n")] = '\0';
-    }
+    fgets(buffer, max_num_of_symb_to_read, stdin);
+    buffer[strcspn(buffer, "\n")] = '\0';
+    printf(COLOR_RESET);
+}
+
+static void akinator_char_scanf(char* buffer){
+    printf(LIGHT_PURPLE); 
+    scanf("%c", buffer);
+    clear_input_buffer();
     printf(COLOR_RESET);
 }
 
 //-------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------
-// Akinator menu - funcyion
+// Akinator menu - function
+
+static void PrintMenu();
+
+static TreeErr_t MenuDefinition(TreeHead_t* head);
+
+static TreeErr_t MenuCompare(TreeHead_t* head);
+
+static void MenuDump(TreeHead_t* head);
+
+static TreeErr_t MenuSaveQuit(TreeHead_t* head);
 
 TreeErr_t AkinatorMenuAndMainFunc(TreeHead_t* head){
     TreeErr_t err = NO_MISTAKE;
-    err = TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
     if(err) return err;
 
     bool is_quit = false;
-    char buffer[MAX_PERSON_NAME_SIZE] = {};
-    char buffer2[MAX_PERSON_NAME_SIZE] = {};
-    char buffer_file[MAX_QUESTION_SIZE] = {};
-    char buffer_dump[MAX_QUESTION_SIZE] = {};
     char choise = 'x';
 
     while(!is_quit){
-        SayAndPrintSaid(GREY_BLUE, "\nWhat do you want?\n");
-        printf( GREY_BLUE   "[G]uess? (put G)\n" 
-                            "[M]ake definition? (put M)\n"
-                            "[C]ompare objects? (put C)\n" 
-                            "[D]ump tree? (put D)\n" 
-                            "[S]ave and quit? (put S)\n" 
-                            "Quit without saving? (put other letter)\n" COLOR_RESET);
+        PrintMenu();
 
-        akinator_scanf(&choise, CHAR_SIZE);
+        akinator_char_scanf(&choise);
         switch(choise){
-            case 'G':   TreeAkinate(head); break;
-            case 'M':   SayAndPrintSaid(GREY_BLUE, "Definition of who do you want to make?\n");
-                        akinator_scanf(buffer, MAX_PERSON_NAME_SIZE);
-                        TreeMakeDefinition(head, buffer);
-                        break;
-            case 'C':   SayAndPrintSaid(GREY_BLUE, "Compare who do you want?\n");
-                        printf(GREY_BLUE); printf("At first: "); printf(COLOR_RESET);
-                        akinator_scanf(buffer, MAX_PERSON_NAME_SIZE);
-                        printf(GREY_BLUE); printf("and "); printf(COLOR_RESET);
-                        akinator_scanf(buffer2, MAX_PERSON_NAME_SIZE);
-                        TreeFindCommonOpposite(head, buffer, buffer2); 
-                        break;   
-            case 'D':   
-                        SayAndPrintSaid(GREY_BLUE, "Enter the reason of dump:\n");
-                        akinator_scanf(buffer_dump, MAX_QUESTION_SIZE);
-                        tree_dump_func(head->root, head, buffer_dump, __FILE__, __func__,  __LINE__);
-                        SayAndPrintSaid(GREY_BLUE, "Tree dumped to log file\n");
-                        break;
-            case 'S':   SayAndPrintSaid(GREY_BLUE, "Put name of file where write:\n" COLOR_RESET);
-                        akinator_scanf(buffer_file, MAX_QUESTION_SIZE);
-                        PutAkinatorFile(buffer_file, head->root, head);
-                        is_quit = true;
-                        break;
-            default:    is_quit = true;
-                        break;
+            case 'G':   CHECK_AND_RET_TREEERR(TreeAkinate(head));                  break;
+            case 'M':   CHECK_AND_RET_TREEERR(MenuDefinition(head));               break;
+            case 'C':   CHECK_AND_RET_TREEERR(MenuCompare(head));                  break;   
+            case 'D':   MenuDump(head);                                            break;
+            case 'S':   CHECK_AND_RET_TREEERR(MenuSaveQuit(head)); is_quit = true; break;
+            default:    is_quit = true;                                            break;
         }
-        err = TreeVerify(head);
-        if(err) return err;
     }
 
-    return TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head));
+    return err;
+}
+
+static void PrintMenu(){
+    SayAndPrintSaid(GREY_BLUE, "\nWhat do you want?\n");
+    printf( GREY_BLUE   "[G]uess? (put G)\n" 
+                        "[M]ake definition? (put M)\n"
+                        "[C]ompare objects? (put C)\n" 
+                        "[D]ump tree? (put D)\n" 
+                        "[S]ave and quit? (put S)\n" 
+                        "Quit without saving? (put other letter)\n" COLOR_RESET);
+}
+
+static TreeErr_t MenuDefinition(TreeHead_t* head){
+    char buffer[MAX_PERSON_NAME_SIZE] = {};
+    SayAndPrintSaid(GREY_BLUE, "Definition of who do you want to make?\n");
+    akinator_scanf(buffer, MAX_PERSON_NAME_SIZE);
+    return TreeMakeDefinition(head, buffer);
+}
+
+static TreeErr_t MenuCompare(TreeHead_t* head){
+    char buffer[MAX_PERSON_NAME_SIZE] = {};
+    char buffer2[MAX_PERSON_NAME_SIZE] = {};
+
+    SayAndPrintSaid(GREY_BLUE, "Compare who do you want?\n");
+    printf(GREY_BLUE); printf("At first: "); printf(COLOR_RESET);
+    akinator_scanf(buffer, MAX_PERSON_NAME_SIZE);
+    printf(GREY_BLUE); printf("and "); printf(COLOR_RESET);
+    akinator_scanf(buffer2, MAX_PERSON_NAME_SIZE);
+    return TreeFindCommonOpposite(head, buffer, buffer2); 
+}
+
+static void MenuDump(TreeHead_t* head){
+    char buffer_dump[MAX_QUESTION_SIZE] = {};
+    SayAndPrintSaid(GREY_BLUE, "Enter the reason of dump:\n");
+    akinator_scanf(buffer_dump, MAX_QUESTION_SIZE);
+    tree_dump_func(head->root, head, buffer_dump, __FILE__, __func__,  __LINE__);
+    SayAndPrintSaid(GREY_BLUE, "Tree dumped to log file\n");
+}
+
+static TreeErr_t MenuSaveQuit(TreeHead_t* head){
+    char buffer_file[MAX_QUESTION_SIZE] = {};
+
+    SayAndPrintSaid(GREY_BLUE, "Put name of file where write:\n" COLOR_RESET);
+    akinator_scanf(buffer_file, MAX_QUESTION_SIZE);
+    return PutAkinatorFile(buffer_file, head->root, head);
 }
 
 
@@ -140,11 +166,12 @@ TreeErr_t TreeAkinate(TreeHead_t* head){
     assert(head);
 
     TreeErr_t err = NO_MISTAKE;
-    err = TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
     if(err) return err;
 
     if(!StartGame(head)){
-        return TreeVerify(head);
+        DEBUG_TREE(err = TreeVerify(head);)
+        return err;
     }
 
     bool get_corr_answer = false;
@@ -163,8 +190,8 @@ TreeErr_t TreeAkinate(TreeHead_t* head){
         }
     }
 
-
-    return TreeNodeVerify(node, head);
+    DEBUG_TREE(err = TreeNodeVerify(node, head);)
+    return err;
 }
 
 static bool StartGame(TreeHead_t* head){
@@ -259,7 +286,7 @@ static TreeErr_t TreeAddObjAndQuestion(TreeNode_t* node, TreeHead_t* head){
     assert(head);
 
     TreeErr_t err = NO_MISTAKE;
-    err = TreeNodeVerify(node, head);
+    DEBUG_TREE(err = TreeNodeVerify(node, head);)
     if(err) return err;
 
     node->right = NodeCtor(node->data, node, NULL, NULL, node->need_data_free);
@@ -275,7 +302,8 @@ static TreeErr_t TreeAddObjAndQuestion(TreeNode_t* node, TreeHead_t* head){
 
     head->capacity += 2;
 
-    return TreeNodeVerify(node, head);
+    DEBUG_TREE(err = TreeNodeVerify(node, head);)
+    return err;
 }
 
 static TreeNode_t* AddPerson(TreeNode_t* node, const char* str){
@@ -366,7 +394,7 @@ TreeErr_t TreeAddFirstQuestion(TreeHead_t* head){
     assert(head);
 
     TreeErr_t err = NO_MISTAKE;
-    err = TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
     if(err) return err;
 
     SayAndPrintSaid(GREY_BLUE, "Akinator is empty - need to add first question\n");
@@ -376,7 +404,8 @@ TreeErr_t TreeAddFirstQuestion(TreeHead_t* head){
     head->root->right = AddPerson(head->root, "For who this feature is false?");
     head->capacity += 2;
 
-    return TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
+    return err;
 }
 
 //-----------------------------------------------------------------------------------------
@@ -390,7 +419,7 @@ TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name){
     assert(name);
 
     TreeErr_t err = NO_MISTAKE;
-    err = TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
     if(err) return err;
 
     stack_t_t* path = stack_ctor(head->capacity, __FILE__, __func__, __LINE__);
@@ -409,7 +438,8 @@ TreeErr_t TreeMakeDefinition(TreeHead_t* head, const char* name){
 
     stack_free(path);
 
-    return TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
+    return err;
 }
 
 static void OutputDefinitionAndOpp(stack_t_t* path, TreeNode_t* node){
@@ -433,7 +463,7 @@ static void OutputDefinitionAndOpp(stack_t_t* path, TreeNode_t* node){
 //-----------------------------------------------------------------------------------------
 // Find common and opposite
 
-static TreeErr_t PrintCommon(stack_t_t* path1, stack_t_t* path2, TreeNode_t** node);
+static void PrintCommon(stack_t_t* path1, stack_t_t* path2, TreeNode_t** node);
 
 TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char* name2){
     assert(name1);
@@ -441,7 +471,7 @@ TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char
     assert(head);
 
     TreeErr_t err = NO_MISTAKE;
-    err = TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
     if(err) return err;
 
     stack_t_t* path1 = stack_ctor(head->capacity, __FILE__, __func__, __LINE__);
@@ -460,7 +490,6 @@ TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char
         fprintf(stderr, "incorr name - can't find");
         return CANT_MAKE_DEF_COMP;
     }
-    stack_dump(path1);
 
     SayAndPrintSaid(LIGHT_PURPLE, "Comparing %s and %s\n", name1, name2);
 
@@ -478,10 +507,11 @@ TreeErr_t TreeFindCommonOpposite(TreeHead_t* head, const char* name1, const char
     stack_free(path1);
     stack_free(path2);
 
-    return TreeVerify(head);
+    DEBUG_TREE(err = TreeVerify(head);)
+    return err;
 }
 
-static TreeErr_t PrintCommon(stack_t_t* path1, stack_t_t* path2, TreeNode_t** node){
+static void PrintCommon(stack_t_t* path1, stack_t_t* path2, TreeNode_t** node){
     assert(path1 && path2 && node && *node);
 
     int elem1 = 0;
@@ -504,7 +534,5 @@ static TreeErr_t PrintCommon(stack_t_t* path1, stack_t_t* path2, TreeNode_t** no
     // потому что удалили первый несовпадающий элемент
     stack_push(path1, &elem1);
     stack_push(path2, &elem2);
-
-    return NO_MISTAKE;
 }
 

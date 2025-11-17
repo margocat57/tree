@@ -14,6 +14,19 @@ const char* const NOTHING = "NOTHING";
 typedef uint64_t TreeErr_t;
 typedef const char* TreeElem_t;
 
+#ifdef _DEBUG_SMALL_TREE
+    #define DEBUG_TREE(...) __VA_ARGS__
+#else 
+    #define DEBUG_TREE(...)
+#endif //_DEBUG_SMALL_TREE
+
+#define CHECK_AND_RET_TREEERR(bad_condition)\
+    if(bad_condition){ \
+        fprintf(stderr, "err = %llu, %s, %s, %d", bad_condition, __FILE__, __func__, __LINE__); \
+        return bad_condition; \
+    } \
+
+
 enum Err{
     NO_MISTAKE_T,
     NULL_NODE_PTR,

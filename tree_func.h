@@ -20,10 +20,6 @@ TreeErr_t TreeDel(TreeHead_t* head);
 
 TreeErr_t CreatePath(TreeNode_t* node, TreeHead_t* head, const char* name, stack_t_t* stack, bool *found);
 
-stack_t_t* TreeFindPathToNode(TreeNode_t* node, TreeNode_t* node_dst);
-
-TreeNode_t* TreeFindCommonNode(TreeHead_t* head, TreeNode_t* node1, TreeNode_t* node2);
-
 TreeErr_t PrintNode(const TreeNode_t* node, const TreeHead_t* head, FILE* dot_file, int* rank);
 
 TreeErr_t TreeNodeVerify(const TreeNode_t *node, const TreeHead_t* head);
